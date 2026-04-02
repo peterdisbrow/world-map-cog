@@ -1,0 +1,15 @@
+World Map COG - Release Package Quick Start
+
+Windows:
+1. Install Node.js LTS.
+2. Unzip this package anywhere.
+3. Double-click run-local-kiosk.bat.
+
+Manual options:
+- start-local-server.bat starts only the local mirror server
+- launch-kiosk-local.bat opens the kiosk browser
+
+Notes:
+- Content changes are made in the hosted Vercel app, not locally
+- The kiosk syncs from the hosted app and keeps a cached snapshot for offline use
+- If Chrome is not installed, the launcher will try Microsoft Edge
