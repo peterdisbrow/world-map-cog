@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Church of God — Global Missions & Schools</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://d3js.org/topojson.v3.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #020408;
+    --accent: #00e5ff;
+    --accent-glow: #00e5ff66;
+    --sea: #030610;
+    --land: rgba(0,40,80,0.25);
+    --land-stroke: #00b8ff;
+    --panel-bg: rgba(2, 8, 20, 0.95);
+    --text: #f0e8d0;
+    --text-muted: #8090a0;
+    --mission-color: #f0c040;
+    --school-color: #9b59b6;
+    --mission-glow: #f0c04066;
+    --school-glow: #f0c04066;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    touch-action: none;
+    cursor: default;
+  }
+  #scene {
+    width: 2400px; height: 1350px;
+    background: var(--bg);
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: center center;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+
+  #map-container { position: relative; width: 100%; height: 100%; z-index: 1; transform: translateZ(0); }
+  #map-container svg { display: block; width: 100%; height: 100%; }
+  #map-container::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse 65% 60% at 50% 48%, rgba(0,30,80,0.25) 0%, rgba(0,15,40,0.1) 40%, transparent 65%);
+  }
+  #map-container::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 45%, rgba(0,2,8,0.65) 100%);
+    animation: atmo-breathe 20s ease-in-out infinite;
+  }
+  @keyframes atmo-breathe { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+
+  .country { stroke: rgba(0,200,255,0.7); stroke-width: 0.6; }
+  .coastline-glow { fill: none; stroke: rgba(0,220,255,0.5); stroke-width: 2; pointer-events: none; }
+  .coastline-glow-bright { fill: none; stroke: rgba(0,200,255,0.15); stroke-width: 4; pointer-events: none; }
+  @keyframes coastline-pulse { 0%, 100% { stroke-opacity: 0.6; } 50% { stroke-opacity: 0.85; } }
+  .country-africa { fill: rgba(0,50,100,0.35); }
+  .country-europe { fill: rgba(0,45,95,0.35); }
+  .country-asia { fill: rgba(0,40,90,0.35); }
+  .country-namerica { fill: rgba(0,55,105,0.37); }
+  .country-samerica { fill: rgba(0,45,90,0.33); }
+  .country-oceania { fill: rgba(0,42,92,0.33); }
+  .country-other { fill: rgba(0,50,100,0.35); }
+
+  .graticule { fill: none; stroke: rgba(0,180,255,0.18); stroke-width: 0.8; stroke-dasharray: 6 10; }
+  .arc-line { fill: none; stroke: rgba(0,229,255,0.10); stroke-width: 0.8; stroke-dasharray: 6 4; pointer-events: none; }
+  .ocean-wave { fill: none; stroke: rgba(0,80,160,0.04); stroke-width: 1; }
+  .ocean-wave-group { animation: wave-drift 30s linear infinite; will-change: transform; }
+  @keyframes wave-drift { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-200px,0,0); } }
+
+  .region-label { font-size: 14px; fill: rgba(0,200,255,0.25); letter-spacing: 6px; text-transform: uppercase; text-anchor: middle; pointer-events: none; font-weight: 600; }
+
+  /* ── HUD Overlay ───────────────────────────────── */
+
+  /* ── Pulse Rings ───────────────────────────────── */
+  .pulse-ring { fill: none; pointer-events: none; }
+
+  /* ── Marker Flare (data transmission arrival) ──── */
+  .marker-flare .marker-halo { opacity: 0.9 !important; transform: scale(2); transition: all 0.3s ease-out; }
+  .marker-bounce { animation: marker-bounce 0.4s ease; }
+  @keyframes marker-bounce { 0% { transform: scale(1); } 40% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+  /* ── Touch Ripple ──────────────────────────────── */
+  .touch-ripple { fill: none; pointer-events: none; }
+  .touch-connection { fill: none; stroke-width: 1.5; pointer-events: none; }
+
+  .marker-group { cursor: pointer; }
+  .marker-halo { opacity: 0.4; }
+  .marker-dot { transition: r 0.2s; }
+  .marker-group:hover .marker-dot, .marker-group.active .marker-dot { r: 24; }
+  .marker-group:hover .marker-halo { opacity: 0.7; }
+  .marker-label { font-size: 22px; fill: #f0d080; text-anchor: middle; pointer-events: none; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 12px rgba(0,0,0,0.9), 0 0 20px rgba(240,192,64,0.3); font-weight: 600; }
+  .marker-group:hover .marker-label { opacity: 1; }
+
+  .marker-breathe { animation: breathe 4s ease-in-out infinite; will-change: opacity; }
+  @keyframes breathe { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.55; } }
+
+  /* ── HQ Star ──────────────────────────────────── */
+  .hq-star .star-glow { animation: star-pulse 4s ease-in-out infinite; will-change: opacity, transform; }
+  @keyframes star-pulse { 0%, 100% { opacity: 0.4; transform: scale3d(1,1,1); } 50% { opacity: 0.7; transform: scale3d(1.15,1.15,1); } }
+  .hq-star .star-shape { animation: star-rotate 60s linear infinite; will-change: transform; }
+  @keyframes star-rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* ── Light stream animation ──────────────────── */
+  .light-particle { fill: none; stroke-width: 6; stroke-linecap: round; }
+  .light-shadow { fill: none; stroke-width: 16; stroke-linecap: round; filter: url(#particle-blur); }
+
+
+  /* ── Info Panel (popup near dot) ──────────────── */
+  #info-panel {
+    position: fixed;
+    width: min(440px, 75vw); max-height: 85vh;
+    background: var(--panel-bg); border: 1px solid rgba(0,180,255,0.25);
+    border-radius: 18px; padding: 28px 26px;
+    z-index: 100;
+    overflow-y: auto; backdrop-filter: blur(20px);
+    box-shadow: 0 12px 80px rgba(0,0,0,0.8), 0 0 30px rgba(0,180,255,0.08);
+    opacity: 0; pointer-events: none;
+    transform: scale(0.9);
+    transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1), transform 0.35s cubic-bezier(0.16,1,0.3,1);
+  }
+  #info-panel.open { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+  #panel-close {
+    position: absolute; top: 18px; right: 22px;
+    width: 40px; height: 40px; border: 1px solid #3a5a90; border-radius: 50%;
+    background: transparent; color: var(--text-muted); font-size: 22px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  #panel-close:active { border-color: var(--accent); color: var(--accent); }
+
+  .panel-type {
+    display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 14px; margin-bottom: 10px;
+  }
+  .panel-type.mission { background: rgba(240,192,64,0.15); color: var(--mission-color); border: 1px solid rgba(240,192,64,0.3); }
+  .panel-type.school  { background: rgba(155,89,182,0.15); color: var(--school-color); border: 1px solid rgba(155,89,182,0.3); }
+
+  .panel-title { font-size: clamp(18px,2.5vw,26px); font-weight: 700; margin-bottom: 6px; line-height: 1.2; color: #f0c040; }
+  .panel-location { font-size: 15px; color: var(--text-muted); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .panel-location svg { width: 15px; height: 15px; fill: var(--text-muted); }
+
+  .panel-image { width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; margin-bottom: 14px; background: #1a2340; display: flex; align-items: center; justify-content: center; position: relative; }
+  .panel-image img { width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1; }
+  .panel-slide { position: relative; width: 100%; height: 100%; flex-shrink: 0; overflow: hidden; }
+  .panel-slide .blur-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(18px) brightness(0.5); z-index: 0; }
+  .panel-image-placeholder {
+    width: 100%; height: 100%; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+  }
+  .panel-image-placeholder.mission-bg {
+    background: linear-gradient(135deg, #0a1628 0%, #142040 30%, #1a3060 60%, #0d2040 100%);
+  }
+  .panel-image-placeholder.school-bg {
+    background: linear-gradient(135deg, #1a1508 0%, #2a2010 30%, #3a2a10 60%, #201808 100%);
+  }
+  .panel-image-placeholder svg { width: 36px; height: 36px; opacity: 0.35; }
+  .panel-image-placeholder .placeholder-country {
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(255,255,255,0.2); font-weight: 600;
+  }
+  .panel-image-placeholder::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.04) 0%, transparent 60%);
+  }
+  .panel-image-placeholder::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
+    pointer-events: none;
+  }
+
+  /* Carousel */
+  .carousel { position: relative; width: 100%; height: 100%; }
+  .carousel-track { display: flex; height: 100%; transition: transform 0.3s ease; }
+  .carousel-track .panel-slide { width: 100%; height: 100%; flex-shrink: 0; }
+  .carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; z-index: 2; }
+  .panel-image:hover .carousel-arrow { opacity: 1; }
+  .carousel-arrow.left { left: 6px; }
+  .carousel-arrow.right { right: 6px; }
+  .carousel-dots { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; z-index: 2; }
+  .carousel-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.4); border: none; cursor: pointer; padding: 0; }
+  .carousel-dot.active { background: #f0c040; }
+
+  .panel-desc { font-size: 15px; line-height: 1.6; color: #c8d0e8; margin-bottom: 16px; }
+
+  .panel-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .panel-stat { background: rgba(255,255,255,0.04); border: 1px solid #2a3a60; border-radius: 10px; padding: 10px; text-align: center; }
+  .panel-stat-value { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .panel-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
+
+  /* ── Cluster popup ───────────────────────────── */
+  #cluster-popup {
+    position: fixed; z-index: 120;
+    background: var(--panel-bg); border: 1px solid #3a5a90;
+    border-radius: 18px; padding: 16px 10px;
+    backdrop-filter: blur(20px); box-shadow: 0 12px 50px rgba(0,0,0,0.7);
+    display: none; min-width: 280px;
+    transform: translate(-50%, -100%); margin-top: -20px;
+  }
+  #cluster-popup.open { display: block; }
+  #cluster-popup::after {
+    content: ''; position: absolute; bottom: -8px; left: 50%;
+    transform: translateX(-50%); width: 0; height: 0;
+    border-left: 8px solid transparent; border-right: 8px solid transparent;
+    border-top: 8px solid #2a3a60;
+  }
+  .cluster-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; border-radius: 12px;
+    cursor: pointer; transition: background 0.2s; border: none;
+    background: transparent; color: var(--text); font-size: 17px;
+    width: 100%; text-align: left; font-family: inherit;
+  }
+  .cluster-item:hover { background: rgba(255,255,255,0.08); }
+  .cluster-item-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .cluster-item-type { font-size: 12px; color: var(--text-muted); margin-left: auto; text-transform: uppercase; letter-spacing: 1.5px; }
+
+  #overlay { position: fixed; inset: 0; z-index: 50; display: none; }
+  #overlay.active { display: block; }
+
+  /* ── Title Banner / Mission Control Ribbon ─────── */
+  #title-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+  }
+  .banner-line-top { width: 100%; height: 1px; background: linear-gradient(to right, transparent 5%, rgba(240,192,64,0.15) 25%, rgba(0,229,255,0.3) 50%, rgba(240,192,64,0.15) 75%, transparent 95%); }
+  .banner-status {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 6px 0; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(80,200,255,0.5);
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #40e080; box-shadow: 0 0 8px #40e080; animation: status-blink 2s ease-in-out infinite; }
+  @keyframes status-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .status-live { color: #40e080; font-weight: 700; letter-spacing: 4px; }
+  .banner-main {
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+    padding: 14px 40px 18px;
+    background: linear-gradient(to bottom, rgba(3,5,14,0.97) 0%, rgba(5,8,18,0.7) 80%, transparent 100%);
+  }
+  .banner-title {
+    font-size: 28px; font-weight: 700; letter-spacing: 5px;
+    text-transform: uppercase; color: #f0c040; opacity: 0.95;
+    text-shadow: 0 0 30px rgba(240,192,64,0.5), 0 0 60px rgba(240,192,64,0.2);
+    margin-bottom: 12px;
+  }
+  .banner-stats-row {
+    display: flex; align-items: center; justify-content: center; gap: 50px;
+  }
+  .banner-divider {
+    width: 1px; height: 32px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.15), transparent);
+  }
+  .banner-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .stat-value {
+    font-size: 34px; font-weight: 700; color: #f0c040;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 20px rgba(240,192,64,0.4), 0 0 40px rgba(240,192,64,0.15);
+  }
+  .stat-label {
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(240,210,140,0.55); font-weight: 500;
+  }
+  .ticker-strip {
+    width: 100%; overflow: hidden; padding: 5px 0 8px;
+    background: rgba(3,5,14,0.95);
+    border-top: 1px solid rgba(80,200,255,0.06);
+  }
+  .ticker-scroll {
+    display: flex; white-space: nowrap;
+    animation: ticker-scroll 120s linear infinite;
+    font-size: 12px; letter-spacing: 1px; color: rgba(144,168,208,0.5);
+  }
+  .ticker-scroll span { padding: 0 30px; }
+  .ticker-scroll .ticker-dot { color: rgba(80,200,255,0.3); padding: 0 6px; }
+  @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .banner-line-bottom { width: 100%; height: 1px; background: linear-gradient(to right, transparent 10%, rgba(80,200,255,0.08) 40%, rgba(80,200,255,0.08) 60%, transparent 90%); }
+
+  /* ── Bottom Bar (LIVE + Ticker) ──────────────── */
+  #bottom-bar {
+    position: fixed; bottom: 40px; left: 0; right: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(3,5,14,0.95) 0%, rgba(3,5,14,0.6) 70%, transparent 100%);
+  }
+  .bottom-bar-line { width: 100%; height: 1px; background: linear-gradient(to right, transparent 5%, rgba(0,229,255,0.2) 30%, rgba(0,229,255,0.3) 50%, rgba(0,229,255,0.2) 70%, transparent 95%); }
+
+  /* ── Touch Prompt ────────────────────────────── */
+  #touch-prompt {
+    position: fixed; left: 50%; bottom: 50%;
+    transform: translate(-50%, 50%); z-index: 8;
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 36px;
+    background: rgba(2, 8, 20, 0.6);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 30px; backdrop-filter: blur(10px);
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  #touch-prompt.visible { opacity: 1; }
+  #touch-prompt.hidden { opacity: 0; transition: opacity 0.5s ease; }
+  #touch-prompt .prompt-icon {
+    width: 36px; height: 36px; fill: var(--accent);
+    animation: prompt-point 2s ease-in-out infinite;
+  }
+  #touch-prompt .prompt-text {
+    font-size: 20px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.5), 0 0 40px rgba(0, 229, 255, 0.2);
+    animation: prompt-breathe 3s ease-in-out infinite;
+  }
+  @keyframes prompt-breathe { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+  @keyframes prompt-point { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+  /* ── Kiosk Mode Indicator ──────────────────────── */
+  #kiosk-indicator {
+    position: fixed; top: 20px; right: 20px; z-index: 9;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: rgba(2, 8, 20, 0.7);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    border-radius: 20px;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(0, 229, 255, 0.6);
+    opacity: 0; transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  #kiosk-indicator.visible { opacity: 1; }
+  #kiosk-indicator .kiosk-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); animation: status-blink 2s ease-in-out infinite;
+  }
+
+  /* ── Prayer Journey Bar ──────────────────────── */
+  #prayer-bar {
+    position: fixed; bottom: 40px; left: 0; right: 0; z-index: 12;
+    height: 160px;
+    background: linear-gradient(to top, rgba(2, 8, 20, 0.95) 0%, rgba(2, 8, 20, 0.8) 60%, transparent 100%);
+    display: flex; align-items: flex-end; padding: 0 60px 24px 90px;
+    gap: 30px;
+    opacity: 0; transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    pointer-events: none;
+  }
+  #prayer-bar.visible { opacity: 1; transform: translateY(0); }
+  #prayer-bar .prayer-photo {
+    width: 120px; height: 120px; border-radius: 8px;
+    border: 2px solid rgba(240, 192, 64, 0.5);
+    box-shadow: 0 0 20px rgba(240, 192, 64, 0.2);
+    overflow: hidden; flex-shrink: 0;
+    background: rgba(10, 30, 60, 0.8);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #prayer-bar .prayer-photo img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  #prayer-bar .prayer-photo svg {
+    width: 40px; height: 40px; opacity: 0.4;
+  }
+  #prayer-bar .prayer-info {
+    flex: 1; min-width: 0;
+  }
+  #prayer-bar .prayer-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(0, 229, 255, 0.6); margin-bottom: 6px;
+  }
+  #prayer-bar .prayer-name {
+    font-size: 28px; font-weight: 700; letter-spacing: 1px;
+    color: #f0c040;
+    text-shadow: 0 0 20px rgba(240, 192, 64, 0.4);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #prayer-bar .prayer-country {
+    font-size: 14px; color: rgba(200, 220, 255, 0.6);
+    margin-top: 4px; letter-spacing: 1px;
+  }
+  #prayer-bar .prayer-prompt {
+    font-size: 16px; color: rgba(200, 220, 255, 0.85);
+    margin-top: 8px; font-style: italic;
+    line-height: 1.4;
+    max-width: 700px;
+  }
+  #prayer-bar .prayer-progress {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    background: rgba(0, 229, 255, 0.1);
+  }
+  #prayer-bar .prayer-progress-fill {
+    height: 100%; background: linear-gradient(90deg, #00e5ff, #f0c040);
+    transition: width linear;
+    width: 0;
+  }
+
+  /* ── Prayer Journey Spotlight ──────────────────── */
+  #prayer-spotlight {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 5;
+    opacity: 0; transition: opacity 1.5s ease;
+  }
+  #prayer-spotlight.visible { opacity: 1; }
+
+  /* ── Journey Curtain (fade-through-dark for flicker-free zoom) ── */
+  #journey-curtain {
+    position: fixed; inset: 0; z-index: 4;
+    background: rgba(2, 8, 20, 1);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #journey-curtain.visible { opacity: 1; }
+
+
+  /* ── Prayer Focus Ring (SVG overlay for active marker) ── */
+  .prayer-focus-ring {
+    fill: none;
+    stroke: #f0c040;
+    stroke-width: 2;
+  }
+  @keyframes focus-ring-pulse {
+    0% { r: 30; opacity: 0.8; stroke-width: 3; }
+    100% { r: 80; opacity: 0; stroke-width: 0.5; }
+  }
+  @keyframes focus-ring-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* ── Prayer Journey Trigger Button ────────────── */
+  #fullscreen-btn {
+    position: fixed; top: 20px; right: 20px; z-index: 13;
+    width: 44px; height: 44px; padding: 0;
+    background: rgba(2, 12, 30, 0.75);
+    border: 1px solid rgba(0, 180, 255, 0.3);
+    border-radius: 50%;
+    color: rgba(0, 200, 255, 0.8);
+    cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.3s, color 0.3s;
+  }
+  #fullscreen-btn:active { border-color: rgba(0, 200, 255, 0.7); color: #fff; }
+  #fullscreen-btn svg { width: 22px; height: 22px; }
+
+  #prayer-journey-btn {
+    position: fixed; bottom: 100px; left: 30px; z-index: 13;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 24px;
+    background: rgba(2, 12, 30, 0.75);
+    border: 1px solid rgba(240, 192, 64, 0.35);
+    border-radius: 30px;
+    color: rgba(240, 192, 64, 0.85);
+    font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: journey-btn-glow 3s ease-in-out infinite;
+  }
+  @keyframes journey-btn-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(240, 192, 64, 0.1), inset 0 0 8px rgba(240, 192, 64, 0.05); }
+    50% { box-shadow: 0 0 20px rgba(240, 192, 64, 0.25), inset 0 0 12px rgba(240, 192, 64, 0.1); border-color: rgba(240, 192, 64, 0.55); }
+  }
+  #prayer-journey-btn:active {
+    border-color: rgba(240, 192, 64, 0.7);
+    box-shadow: 0 0 30px rgba(240, 192, 64, 0.35);
+    animation: none;
+  }
+  #prayer-journey-btn .btn-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #f0c040;
+    box-shadow: 0 0 8px rgba(240, 192, 64, 0.8), 0 0 16px rgba(240, 192, 64, 0.4);
+    animation: btn-dot-pulse 2s ease-in-out infinite;
+  }
+  @keyframes btn-dot-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 12px rgba(240, 192, 64, 1), 0 0 24px rgba(240, 192, 64, 0.6); }
+  }
+  #prayer-journey-btn.hidden { opacity: 0; pointer-events: none; animation: none; }
+
+  /* ── Exit Journey Button ────────────────────── */
+  #exit-journey-btn {
+    position: fixed; bottom: 100px; left: 30px; z-index: 15;
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; padding: 0;
+    background: rgba(2, 12, 30, 0.8);
+    border: 1px solid rgba(255, 80, 80, 0.4);
+    border-radius: 50%;
+    color: rgba(255, 120, 120, 0.9);
+    cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  #exit-journey-btn.visible { opacity: 1; pointer-events: auto; }
+  #exit-journey-btn:active {
+    border-color: rgba(255, 80, 80, 0.7);
+    box-shadow: 0 0 20px rgba(255, 80, 80, 0.2);
+  }
+  #exit-journey-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+  /* ── Pause/Play Journey Button ──────────────────── */
+  #pause-journey-btn {
+    position: fixed; bottom: 52px; left: 30px; z-index: 15;
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    background: rgba(2, 12, 30, 0.8);
+    border: 1px solid rgba(240, 192, 64, 0.35);
+    border-radius: 50%;
+    color: rgba(240, 192, 64, 0.85);
+    cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    padding: 0;
+  }
+  #pause-journey-btn.visible { opacity: 1; pointer-events: auto; }
+  #pause-journey-btn:active {
+    border-color: rgba(240, 192, 64, 0.7);
+    box-shadow: 0 0 20px rgba(240, 192, 64, 0.2);
+  }
+  #pause-journey-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+  /* ── Multi-Touch Prayer Chain ──────────────────── */
+  #touch-chain-svg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 11;
+  }
+  #touch-chain-label {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(240, 192, 64, 0.8);
+    text-shadow: 0 0 30px rgba(240, 192, 64, 0.5);
+    pointer-events: none; z-index: 11;
+    opacity: 0; transition: opacity 0.8s ease;
+  }
+  #touch-chain-label.visible { opacity: 1; }
+  @keyframes chain-pulse {
+    0%, 100% { stroke-opacity: 0.3; }
+    50% { stroke-opacity: 0.8; }
+  }
+
+</style>
+</head>
+<body>
+<div id="scene">
+<div id="map-container"></div>
+
+<div id="touch-prompt">
+  <svg class="prompt-icon" viewBox="0 0 24 24">
+    <path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zM18.84 15.87l-4.54-2.26a.99.99 0 0 0-.45-.11H13v-6a1.5 1.5 0 0 0-3 0v10.74l-3.43-.72a.992.992 0 0 0-.85.24l-.71.63 4.93 4.61c.33.31.77.49 1.23.49h5.58c.89 0 1.67-.59 1.92-1.44l1.16-4.03c.2-.67-.04-1.39-.62-1.77z"/>
+  </svg>
+  <span class="prompt-text">Touch a location to explore</span>
+</div>
+
+<div id="kiosk-indicator">
+  <span class="kiosk-dot"></span>
+  <span>Prayer Journey</span>
+</div>
+
+<button id="fullscreen-btn" onclick="toggleFullscreen()" title="Toggle fullscreen">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+</button>
+<button id="prayer-journey-btn">
+  <span class="btn-dot"></span>
+  Prayer Journey
+</button>
+<div id="journey-curtain"></div>
+<button id="exit-journey-btn">
+  <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+</button>
+<button id="pause-journey-btn">
+  <svg id="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+  <svg id="play-icon" viewBox="0 0 24 24" style="display:none"><path d="M8 5v14l11-7z"/></svg>
+</button>
+
+<div id="prayer-bar">
+  <div class="prayer-photo" id="prayer-photo"></div>
+  <div class="prayer-info">
+    <div class="prayer-label">Pray for</div>
+    <div class="prayer-name" id="prayer-name"></div>
+    <div class="prayer-country" id="prayer-country"></div>
+    <div class="prayer-prompt" id="prayer-prompt"></div>
+  </div>
+  <div class="prayer-progress"><div class="prayer-progress-fill" id="prayer-progress"></div></div>
+</div>
+
+<div id="prayer-spotlight"></div>
+
+<svg id="touch-chain-svg"></svg>
+<div id="touch-chain-label">Praying together across nations</div>
+
+<div id="title-banner">
+  <div class="banner-line-top"></div>
+  <div class="banner-main">
+    <div class="banner-title">Church of God — Global Presence</div>
+    <div class="banner-stats-row">
+      <div class="banner-stat"><span class="stat-value" data-target="186" data-suffix="">0</span><span class="stat-label">Countries</span></div>
+      <div class="banner-divider"></div>
+      <div class="banner-stat"><span class="stat-value" data-target="7" data-suffix="M+">0</span><span class="stat-label">Members</span></div>
+      <div class="banner-divider"></div>
+      <div class="banner-stat"><span class="stat-value" data-target="55" data-suffix="+">0</span><span class="stat-label">Mission Fields</span></div>
+      <div class="banner-divider"></div>
+      <div class="banner-stat"><span class="stat-value" data-target="18" data-suffix="">0</span><span class="stat-label">Seminaries</span></div>
+    </div>
+  </div>
+  <div class="banner-line-bottom"></div>
+</div>
+
+<div id="bottom-bar">
+  <div class="bottom-bar-line"></div>
+  <div class="banner-status">
+    <span>Global Network Monitor</span>
+  </div>
+  <div class="ticker-strip"><div class="ticker-scroll" id="ticker-content"></div></div>
+</div>
+
+<div id="overlay"></div>
+<div id="cluster-popup"></div>
+
+<div id="info-panel">
+  <button id="panel-close">✕</button>
+  <div id="panel-content"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// LOCATION DATA — loaded from API / locations.json
+// ════════════════════════════════════════════════════
+const _hardcoded_locations = [
+  // ── AFRICA MISSIONS ─────────────────────────────
+  { id: 'kenya', type: 'mission', name: 'Kenya Mission', country: 'Kenya', lat: -1.29, lng: 36.82,
+    description: 'Church planting, children\'s ministry, and community outreach. Home to Kibera Oasis of Hope, Kibera Kids Center, Hope For the Children, and Jabez Children\'s Home serving vulnerable communities in Nairobi and beyond.',
+    stats: { region: 'Eastern Africa', missionaries: '6+', programs: 'Children & Church Planting' }, image: null },
+  { id: 'nigeria', type: 'mission', name: 'Nigeria Mission', country: 'Nigeria', lat: 6.52, lng: 3.38,
+    description: 'Church of God established in Nigeria since 1951 through Rex N. Green. Today the work includes church planting, leadership development, and coordinating Africa-wide projects.',
+    stats: { established: '1951', role: 'Africa Projects HQ', focus: 'Church Planting' }, image: null },
+  { id: 'tanzania', type: 'mission', name: 'Tanzania Mission', country: 'Tanzania', lat: -6.79, lng: 37.66,
+    description: 'Missionaries Stephen and Ashley Griffin serving in church development, community outreach, and leadership training across Tanzania.',
+    stats: { region: 'Eastern Africa', focus: 'Church Development', missionaries: 'Griffin Family' }, image: null },
+  { id: 'zambia', type: 'mission', name: 'Zambia Mission', country: 'Zambia', lat: -15.39, lng: 28.32,
+    description: 'Multiple missionary families serving in church development, orphan care through Emma\'s Kids ministry, and community transformation across Zambia.',
+    stats: { missionaries: '5+', programs: "Emma's Kids", focus: 'Orphan Care & Church' }, image: null },
+  { id: 'liberia', type: 'mission', name: 'Liberia Mission', country: 'Liberia', lat: 6.30, lng: -10.80,
+    description: 'Maxwell and Debbie Thompson serving in church planting and operating the Phebe Grey Memorial Orphanage, caring for vulnerable children in Liberia.',
+    stats: { missionaries: 'Thompson Family', program: 'Phebe Grey Orphanage', focus: 'Orphan Care' }, image: null },
+  { id: 'sierra-leone', type: 'mission', name: 'Sierra Leone Mission', country: 'Sierra Leone', lat: 8.47, lng: -13.23,
+    description: 'William and Karen Sivels serving in church development and community ministry in Sierra Leone.',
+    stats: { missionaries: 'Sivels Family', region: 'West Africa', focus: 'Church Development' }, image: null },
+  { id: 'guinea-bissau', type: 'mission', name: 'Guinea-Bissau Mission', country: 'Guinea-Bissau', lat: 11.86, lng: -15.60,
+    description: 'Lydia and Everaldo Nascimento pioneering church planting and ministry development in Guinea-Bissau, West Africa.',
+    stats: { missionaries: 'Nascimento Family', region: 'West Africa', focus: 'Pioneer Church Planting' }, image: null },
+  { id: 'uganda', type: 'mission', name: 'Uganda Mission', country: 'Uganda', lat: 0.35, lng: 32.58,
+    description: 'Widows and orphans ministry including Grace Home Orphanage, Simone\'s Kids, and Catherine\'s Treasures programs caring for Uganda\'s most vulnerable.',
+    stats: { programs: '4+', focus: 'Widows & Orphans', ministries: 'Grace Home & More' }, image: null },
+  { id: 'rwanda', type: 'mission', name: 'Rwanda Mission', country: 'Rwanda', lat: -1.94, lng: 29.87,
+    description: 'Operating the Gatenga-Kigali Feeding Centers providing nutrition and community support in the capital city and surrounding areas.',
+    stats: { program: 'Feeding Centers', location: 'Gatenga, Kigali', focus: 'Nutrition & Community' }, image: null },
+  { id: 'ethiopia', type: 'mission', name: 'Ethiopia Mission', country: 'Ethiopia', lat: 9.02, lng: 38.75,
+    description: 'Sidama Bible School and Feeding Center providing theological education alongside nutrition programs. Also supporting Ethiopia Primary Schools for children.',
+    stats: { programs: 'Bible School & Feeding', schools: 'Primary Schools', focus: 'Education & Nutrition' }, image: null },
+  { id: 'senegal', type: 'mission', name: 'Senegal Mission', country: 'Senegal', lat: 14.69, lng: -17.44,
+    description: 'House of Life Children\'s Home providing care, education, and hope for orphaned and vulnerable children in Senegal.',
+    stats: { program: "House of Life", focus: "Children's Home", region: 'West Africa' }, image: null },
+  { id: 'angola', type: 'mission', name: 'Angola Mission', country: 'Angola', lat: -8.84, lng: 13.23,
+    description: 'The very first Church of God mission field in Africa. Pearl and Edmond Stark arrived at Lobito Bay on May 11, 1938, establishing the foundation for all African ministry.',
+    stats: { established: '1938', significance: 'First African Mission', founders: 'Stark Family' }, image: null },
+  { id: 'ghana-mission', type: 'mission', name: 'Ghana Mission', country: 'Ghana', lat: 6.69, lng: -1.62,
+    description: 'Church planting, Bible Institute, and community development across Ghana. A key hub for West African ministry and leadership training.',
+    stats: { program: 'Bible Institute', city: 'Kumasi', focus: 'Training & Church Planting' }, image: null },
+  { id: 'south-africa-mission', type: 'mission', name: 'South Africa Mission', country: 'South Africa', lat: -25.75, lng: 28.19,
+    description: 'Amalgamated with the Full Gospel Church on March 28, 1951. Now a major regional hub for Southern African ministry, education, and church development.',
+    stats: { established: '1951', role: 'Regional Hub', ministry: 'Full Gospel Church' }, image: null },
+
+  // ── LATIN AMERICA MISSIONS ──────────────────────
+  { id: 'mexico', type: 'mission', name: 'Mexico Mission', country: 'Mexico', lat: 25.67, lng: -100.31,
+    description: 'Multiple missionary families serving throughout Mexico including Lloyd and Joyce Heiney, David and Lily Beck. Focused on church development and community outreach.',
+    stats: { missionaries: '3+ families', focus: 'Church Development', region: 'Latin America' }, image: null },
+  { id: 'guatemala', type: 'mission', name: 'Guatemala Mission', country: 'Guatemala', lat: 14.63, lng: -90.51,
+    description: 'Frankie and Joyce Tyson, David and Vickie Byrd, and Josh and Jessica Hanson serving in church planting, feeding programs, and community development.',
+    stats: { missionaries: '3+ families', focus: 'Church Planting & Feeding', region: 'Central America' }, image: null },
+  { id: 'honduras', type: 'mission', name: 'Honduras Mission', country: 'Honduras', lat: 14.07, lng: -87.19,
+    description: 'Strong missionary presence with Gary and Suzy Loggins, Steven and Candace Day, Martin and Wendy Williams, and David and Jessica Hubbard serving in church development and community ministry.',
+    stats: { missionaries: '4+ families', focus: 'Church Development', region: 'Central America' }, image: null },
+  { id: 'nicaragua', type: 'mission', name: 'Nicaragua Mission', country: 'Nicaragua', lat: 12.11, lng: -86.24,
+    description: 'Shane and Kerri Estes serving in church planting and community outreach throughout Nicaragua.',
+    stats: { missionaries: 'Estes Family', focus: 'Church Planting', region: 'Central America' }, image: null },
+  { id: 'colombia', type: 'mission', name: 'Colombia Mission', country: 'Colombia', lat: 4.71, lng: -74.07,
+    description: 'Rick and Dolores Carroll alongside Bobby and Tammy Owens serving in church development and community transformation in Colombia.',
+    stats: { missionaries: '2 families', focus: 'Church Development', region: 'South America' }, image: null },
+  { id: 'ecuador', type: 'mission', name: 'Ecuador Mission', country: 'Ecuador', lat: -0.18, lng: -78.47,
+    description: 'Multiple missionary families including Dan and Teresa Susong, Michael Mills, and Danny and Tina Byrd serving in church planting and community outreach.',
+    stats: { missionaries: '4+ families', focus: 'Church Planting', region: 'South America' }, image: null },
+  { id: 'peru', type: 'mission', name: 'Peru Mission', country: 'Peru', lat: -12.05, lng: -77.04,
+    description: 'Joe and Judy Mercer, Don Seeders, Ruben and Trisha Ferrell, and Mike and Sheila Eaton serving in pastoral training, children\'s programs, and mountain community outreach.',
+    stats: { missionaries: '4+ families', focus: 'Pastoral Training', region: 'South America' }, image: null },
+  { id: 'brazil', type: 'mission', name: 'Brazil Mission', country: 'Brazil', lat: -22.91, lng: -43.17,
+    description: 'John and Kathy Hayes serving in church development. Rebecca Jenkins operating orphanage ministry caring for vulnerable children in Brazil.',
+    stats: { missionaries: '2+ families', programs: 'Orphanage', focus: 'Church & Orphan Care' }, image: null },
+
+  // ── CARIBBEAN MISSIONS ──────────────────────────
+  { id: 'haiti', type: 'mission', name: 'Haiti Mission', country: 'Haiti', lat: 18.54, lng: -72.34,
+    description: 'Operating multiple orphanages including Little Angels of the Broken Wings, Destiny Village, and Dufaily Orphanage. Providing care and education for Haiti\'s most vulnerable children.',
+    stats: { orphanages: '3+', focus: 'Orphan Care & Education', region: 'Caribbean' }, image: null },
+  { id: 'jamaica-mission', type: 'mission', name: 'Jamaica Mission', country: 'Jamaica', lat: 18.11, lng: -77.30,
+    description: 'Harold and Judy Hanks serving across the Caribbean. Home to the Whittington Heritage Educational Fund and Yadel Orphanage ministries.',
+    stats: { missionaries: 'Hanks Family', programs: 'Education Fund & Orphanage', region: 'Caribbean' }, image: null },
+  { id: 'guyana', type: 'mission', name: 'Guyana Mission', country: 'Guyana', lat: 6.80, lng: -58.16,
+    description: 'Bless The Children ministry operating the Tyler Carver Home, providing a safe and loving environment for orphaned and vulnerable children.',
+    stats: { program: 'Tyler Carver Home', ministry: 'Bless The Children', focus: 'Orphan Care' }, image: null },
+
+  // ── EUROPE / MIDDLE EAST / CIS MISSIONS ─────────
+  { id: 'germany-mission', type: 'mission', name: 'Germany Mission', country: 'Germany', lat: 51.17, lng: 10.45,
+    description: 'Tom and Claudia Rosson, Michelle Vallez, and Steffen and Lisette Schumacher serving in church revitalization and outreach in post-Christian Europe.',
+    stats: { missionaries: '3+ families', focus: 'Church Revitalization', region: 'Europe' }, image: null },
+  { id: 'italy', type: 'mission', name: 'Italy Mission', country: 'Italy', lat: 41.90, lng: 12.50,
+    description: 'Don Chavis, Ben and Diane Bustamante, and Virginia Drennen serving in church planting and community ministry across Italy.',
+    stats: { missionaries: '3+', focus: 'Church Planting', region: 'Europe' }, image: null },
+  { id: 'uk', type: 'mission', name: 'United Kingdom Mission', country: 'United Kingdom', lat: 55.95, lng: -3.19,
+    description: 'Gale Beach, Luke and Sarah Hollifield, and Rick and Jennifer Harris (Scotland) serving in church development across the UK.',
+    stats: { missionaries: '3+ families', focus: 'Church Development', includes: 'Scotland' }, image: null },
+  { id: 'greece', type: 'mission', name: 'Greece Mission', country: 'Greece', lat: 37.98, lng: 23.73,
+    description: 'Philip Henderson, Jamison and Kelli Creel serving in church planting and refugee ministry in Greece.',
+    stats: { missionaries: '2+ families', focus: 'Church Planting', region: 'Europe' }, image: null },
+  { id: 'romania', type: 'mission', name: 'Romania Mission', country: 'Romania', lat: 44.43, lng: 26.10,
+    description: 'Michael and Mihaela Gravitt serving in church development and community outreach in Romania.',
+    stats: { missionaries: 'Gravitt Family', focus: 'Church Development', region: 'Eastern Europe' }, image: null },
+  { id: 'bulgaria', type: 'mission', name: 'Bulgaria Mission', country: 'Bulgaria', lat: 42.43, lng: 25.49,
+    description: 'Karina and Juan Ramirez serving in church planting and community ministry in Bulgaria.',
+    stats: { missionaries: 'Ramirez Family', focus: 'Church Planting', region: 'Eastern Europe' }, image: null },
+  { id: 'ukraine', type: 'mission', name: 'Ukraine Mission', country: 'Ukraine', lat: 50.45, lng: 30.52,
+    description: 'Operating multiple orphan care programs including Kiev Kids, Pearl Orphanage, Pilgrims Children Home, and Samaritan\'s Ministry serving children in crisis.',
+    stats: { orphanages: '4+', focus: 'Orphan Care', programs: 'Kiev Kids & More' }, image: null },
+  { id: 'russia', type: 'mission', name: 'Russia Mission', country: 'Russia', lat: 55.76, lng: 37.62,
+    description: 'Adam Zygarewicz serving in church development and theological education in partnership with Eurasian Theological Seminary in Moscow.',
+    stats: { missionaries: 'Zygarewicz', seminary: 'Eurasian Theological', focus: 'Education & Church' }, image: null },
+  { id: 'israel', type: 'mission', name: 'Israel Mission', country: 'Israel', lat: 31.77, lng: 35.21,
+    description: 'Alfred and Kylee Khuri, Sebastian and Katelyne Schmidgall, and Eugene Mitrea serving in ministry in the Holy Land.',
+    stats: { missionaries: '3+ families', focus: 'Holy Land Ministry', region: 'Middle East' }, image: null },
+  { id: 'turkey', type: 'mission', name: 'Turkey Mission', country: 'Turkey', lat: 39.93, lng: 32.85,
+    description: 'Abram and Elva Valadez serving in church planting in one of the most challenging mission fields in the Middle East.',
+    stats: { missionaries: 'Valadez Family', focus: 'Church Planting', region: 'Middle East' }, image: null },
+  { id: 'czech', type: 'mission', name: 'Czech Republic Mission', country: 'Czech Republic', lat: 50.08, lng: 14.44,
+    description: 'Michelle Saint-Loth serving in church development and outreach in the Czech Republic.',
+    stats: { missionaries: 'Saint-Loth', focus: 'Church Development', region: 'Central Europe' }, image: null },
+  { id: 'hungary', type: 'mission', name: 'Hungary Mission', country: 'Hungary', lat: 47.50, lng: 19.04,
+    description: 'Dan and Rose Smith serving in church planting and community ministry in Hungary.',
+    stats: { missionaries: 'Smith Family', focus: 'Church Planting', region: 'Central Europe' }, image: null },
+  { id: 'poland', type: 'mission', name: 'Poland Mission', country: 'Poland', lat: 52.23, lng: 21.01,
+    description: 'Mark Makhynia and Daniela Mireles serving in church development and outreach in Poland.',
+    stats: { missionaries: '2', focus: 'Church Development', region: 'Central Europe' }, image: null },
+  { id: 'france', type: 'mission', name: 'France Mission', country: 'France', lat: 48.86, lng: 2.35,
+    description: 'Yves Bazile serving in church planting and ministry development in France.',
+    stats: { missionaries: 'Bazile', focus: 'Church Planting', region: 'Western Europe' }, image: null },
+  { id: 'uae', type: 'mission', name: 'UAE — Gilgal Seminary', country: 'United Arab Emirates', lat: 25.20, lng: 55.27,
+    description: 'Gilgal Theological Seminary providing ministerial training in the United Arab Emirates, serving the growing church across the Middle East region.',
+    stats: { institution: 'Gilgal Seminary', focus: 'Theological Education', region: 'Middle East' }, image: null },
+
+  // ── ASIA / PACIFIC MISSIONS ─────────────────────
+  { id: 'india', type: 'mission', name: 'India Mission', country: 'India', lat: 9.93, lng: 76.27,
+    description: 'Church development and theological education through Mount Zion Bible College in Chengannur and Church of God India Theological Seminary. Serving communities across South Asia.',
+    stats: { schools: '2 seminaries', focus: 'Education & Church', region: 'South Asia' }, image: null },
+  { id: 'philippines', type: 'mission', name: 'Philippines Mission', country: 'Philippines', lat: 14.60, lng: 120.98,
+    description: 'Asian Center for Christian Ministries in Manila and Church of God Theological College in Isabela. Supporting church growth and children\'s ministry across the islands.',
+    stats: { schools: '2', focus: 'Theological Education', region: 'Asia/Pacific' }, image: null },
+  { id: 'cambodia', type: 'mission', name: 'Cambodia Mission', country: 'Cambodia', lat: 11.55, lng: 104.92,
+    description: 'Community development, anti-trafficking initiatives, and church planting in Cambodia. Serving vulnerable populations and building local church leadership.',
+    stats: { focus: 'Community Development', region: 'Southeast Asia', ministries: 'Anti-trafficking' }, image: null },
+  { id: 'thailand', type: 'mission', name: 'Thailand Mission', country: 'Thailand', lat: 13.76, lng: 100.50,
+    description: 'Church planting and community outreach in Thailand, one of the most Buddhist nations in the world. Building relationships and sharing hope.',
+    stats: { focus: 'Church Planting', region: 'Southeast Asia', challenge: 'Buddhist Context' }, image: null },
+  { id: 'japan', type: 'mission', name: 'Japan Mission', country: 'Japan', lat: 35.68, lng: 139.69,
+    description: 'Church development and outreach in Japan, working to grow the church in one of the most challenging mission fields in Asia.',
+    stats: { focus: 'Church Development', region: 'East Asia', challenge: 'Post-Christian' }, image: null },
+  { id: 'indonesia', type: 'mission', name: 'Indonesia Mission', country: 'Indonesia', lat: -6.21, lng: 106.85,
+    description: 'Church planting and community development across the world\'s largest archipelago, reaching diverse people groups with the gospel.',
+    stats: { focus: 'Church Planting', region: 'Southeast Asia', population: '270M+' }, image: null },
+  { id: 'nepal', type: 'mission', name: 'Nepal Mission', country: 'Nepal', lat: 27.72, lng: 85.32,
+    description: 'Church planting and community outreach in the Himalayan nation, serving communities in one of the least-reached regions of the world.',
+    stats: { focus: 'Church Planting', region: 'South Asia', challenge: 'Restricted Access' }, image: null },
+  { id: 'bangladesh', type: 'mission', name: 'Bangladesh Mission', country: 'Bangladesh', lat: 23.81, lng: 90.41,
+    description: 'Community development and church planting ministry in Bangladesh, one of the most densely populated nations in the world.',
+    stats: { focus: 'Community & Church', region: 'South Asia', population: '170M+' }, image: null },
+  { id: 'myanmar', type: 'mission', name: 'Myanmar Mission', country: 'Myanmar', lat: 16.87, lng: 96.20,
+    description: 'Church development and community ministry in Myanmar despite challenging political conditions. Supporting the local church through prayer and resources.',
+    stats: { focus: 'Church Development', region: 'Southeast Asia', challenge: 'Political Instability' }, image: null },
+  { id: 'south-korea', type: 'mission', name: 'South Korea Mission', country: 'South Korea', lat: 37.57, lng: 126.98,
+    description: 'Partnership with Korean churches for global mission mobilization and church development.',
+    stats: { focus: 'Partnership', region: 'East Asia', role: 'Mission Mobilization' }, image: null },
+  { id: 'samoa', type: 'mission', name: 'Samoa Mission', country: 'Samoa', lat: -13.83, lng: -171.76,
+    description: 'Church development and community outreach in the Pacific Islands, reaching island communities with the gospel.',
+    stats: { focus: 'Church Development', region: 'Pacific Islands' }, image: null },
+  { id: 'new-zealand', type: 'mission', name: 'New Zealand Mission', country: 'New Zealand', lat: -41.29, lng: 174.78,
+    description: 'Church planting and multicultural ministry in New Zealand, serving a diverse population in the South Pacific.',
+    stats: { focus: 'Multicultural Ministry', region: 'Pacific' }, image: null },
+
+  // ── SCHOOLS & SEMINARIES ────────────────────────
+  { id: 'school-lee', type: 'school', name: 'Lee University', country: 'United States', lat: 35.16, lng: -84.87,
+    description: 'The Church of God\'s oldest and largest educational institution, founded in 1918 as the Bible Training School. Now a premier Christian university offering over 100 areas of study with more than 5,000 students.',
+    stats: { established: '1918', students: '5,000+', programs: '100+' }, image: null },
+  { id: 'school-pts', type: 'school', name: 'Pentecostal Theological Seminary', country: 'United States', lat: 35.18, lng: -84.85,
+    description: 'One of only six Pentecostal seminaries in the US, offering master\'s and doctoral programs in ministry, counseling, and theology. The denomination\'s largest graduate institution.',
+    stats: { established: '1975', programs: "Master's & Doctoral", distinction: '1 of 6 Pentecostal Seminaries' }, image: null },
+  { id: 'school-sa', type: 'school', name: 'Full Gospel Church of God College', country: 'South Africa', lat: -25.88, lng: 28.23,
+    description: 'Training pastors and church leaders across Southern Africa from its campus in Irene, South Africa. A key institution for ministerial preparation on the continent.',
+    stats: { location: 'Irene, SA', focus: 'Ministerial Preparation', region: 'Southern Africa' }, image: null },
+  { id: 'school-india', type: 'school', name: 'Mount Zion Bible College', country: 'India', lat: 9.32, lng: 76.55,
+    description: 'Located in Chengannur, India, training pastors and church leaders for ministry across South Asia. One of the Church of God\'s key educational institutions in the region.',
+    stats: { location: 'Chengannur', focus: 'Pastoral Training', region: 'South Asia' }, image: null },
+  { id: 'school-argentina', type: 'school', name: 'Facultad Argentina de Estudios Teológicos', country: 'Argentina', lat: -34.60, lng: -58.38,
+    description: 'Theological faculty in Buenos Aires serving Spanish-speaking church leaders across South America with advanced theological education.',
+    stats: { location: 'Buenos Aires', language: 'Spanish', region: 'South America' }, image: null },
+  { id: 'school-russia', type: 'school', name: 'Eurasian Theological Seminary', country: 'Russia', lat: 55.76, lng: 37.62,
+    description: 'Training church leaders across the former Soviet Union from Moscow. Providing theological education in a region where the church is experiencing significant growth.',
+    stats: { location: 'Moscow', focus: 'CIS Church Leaders', region: 'Eurasia' }, image: null },
+  { id: 'school-ghana', type: 'school', name: 'Pan African Christian University College', country: 'Ghana', lat: 5.53, lng: -0.63,
+    description: 'University college in Winneba, Ghana, providing higher education with a Christian foundation for students across West Africa.',
+    stats: { location: 'Winneba', focus: 'Higher Education', region: 'West Africa' }, image: null },
+  { id: 'school-haiti', type: 'school', name: 'Seminaire Théologique de l\'Église de Dieu', country: 'Haiti', lat: 18.54, lng: -72.34,
+    description: 'Theological seminary in Port-au-Prince training church leaders for ministry across Haiti and the French-speaking Caribbean.',
+    stats: { location: 'Port-au-Prince', language: 'French', focus: 'Pastoral Training' }, image: null },
+  { id: 'school-guatemala', type: 'school', name: 'Seminario Bíblico Pentecostal de Centroamérica', country: 'Guatemala', lat: 14.84, lng: -91.52,
+    description: 'Biblical seminary in Quetzaltenango training church leaders for ministry across Central America.',
+    stats: { location: 'Quetzaltenango', language: 'Spanish', region: 'Central America' }, image: null },
+  { id: 'school-jamaica', type: 'school', name: 'Bethel Bible College', country: 'Jamaica', lat: 18.04, lng: -77.50,
+    description: 'Bible college in Mandeville training pastors and church leaders for ministry across the Caribbean islands.',
+    stats: { location: 'Mandeville', focus: 'Pastoral Training', region: 'Caribbean' }, image: null },
+  { id: 'school-bulgaria', type: 'school', name: 'Bulgarian Theological College', country: 'Bulgaria', lat: 42.43, lng: 24.62,
+    description: 'Theological college in Stara Zagora training church leaders for ministry across Bulgaria and the Balkans.',
+    stats: { location: 'Stara Zagora', focus: 'Theological Education', region: 'Eastern Europe' }, image: null },
+  { id: 'school-philippines', type: 'school', name: 'Church of God Theological College', country: 'Philippines', lat: 16.93, lng: 121.80,
+    description: 'Theological college in Isabela training church leaders for ministry across the Philippines and Southeast Asia.',
+    stats: { location: 'Isabela', focus: 'Theological Education', region: 'Asia/Pacific' }, image: null },
+  { id: 'school-kenya', type: 'school', name: 'Discipleship College', country: 'Kenya', lat: 0.52, lng: 35.27,
+    description: 'Located in Eldoret, training church leaders and disciples for ministry across East Africa.',
+    stats: { location: 'Eldoret', focus: 'Discipleship Training', region: 'East Africa' }, image: null },
+  { id: 'school-nigeria', type: 'school', name: 'Full Gospel School of Theology', country: 'Nigeria', lat: 5.12, lng: 7.35,
+    description: 'Training ministers and church planters in Abka, Nigeria for ministry across West Africa.',
+    stats: { location: 'Abka', focus: 'Ministry Training', region: 'West Africa' }, image: null },
+  { id: 'school-panama', type: 'school', name: 'Instituto Bíblico Panameño', country: 'Panama', lat: 9.00, lng: -79.52,
+    description: 'Biblical institute in Panama City training church leaders for ministry across Central America and the Caribbean.',
+    stats: { location: 'Panama City', language: 'Spanish', region: 'Central America' }, image: null },
+  { id: 'school-germany', type: 'school', name: 'European Bible Seminary', country: 'Germany', lat: 48.47, lng: 8.25,
+    description: 'Seminary in Kniebis, Germany providing theological education in multiple languages. Serving church leaders across Europe with programs in church revitalization and cross-cultural ministry.',
+    stats: { location: 'Kniebis', languages: 'Multiple', region: 'Europe' }, image: null },
+  { id: 'school-ecuador', type: 'school', name: 'Seminario Ministerial Sudamericano', country: 'Ecuador', lat: -0.18, lng: -78.47,
+    description: 'South American ministerial seminary in Quito, Ecuador training church leaders for ministry across the continent.',
+    stats: { location: 'Quito', language: 'Spanish', region: 'South America' }, image: null },
+  { id: 'school-manila', type: 'school', name: 'Asian Center for Christian Ministries', country: 'Philippines', lat: 14.60, lng: 120.98,
+    description: 'Training center in Manila equipping church leaders and ministers for effective ministry across Asia and the Pacific.',
+    stats: { location: 'Manila', focus: 'Christian Ministries', region: 'Asia/Pacific' }, image: null },
+
+  // ── HISTORIC SITE ─────────────────────────────
+  { id: 'azusa-street', type: 'mission', name: 'Azusa Street', country: 'United States', lat: 34.05, lng: -118.24,
+    description: 'Site of the Azusa Street Revival (1906–1915), the birthplace of modern Pentecostalism. Led by William J. Seymour at 312 Azusa Street in Los Angeles, this revival ignited a global movement that transformed Christianity worldwide.',
+    stats: { established: '1906', leader: 'William J. Seymour', significance: 'Birthplace of Pentecostalism' }, image: null },
+];
+
+// Load locations from API (falls back to hardcoded)
+let locations = _hardcoded_locations;
+fetch('/api/locations').then(r => r.ok ? r.json() : null).then(data => {
+  if (data && data.length) { locations = data; }
+}).catch(() => {}).finally(() => {
+  // Re-render markers if map is already loaded
+  if (window._mapReady) window._renderMarkers(locations);
+});
+
+const HQ = { lat: 35.17, lng: -84.87 }; // Cleveland, TN
+
+// Country → Region lookup (for region filter)
+const countryRegion = {
+  'Kenya':'AFRICA','Nigeria':'AFRICA','Tanzania':'AFRICA','Zambia':'AFRICA',
+  'Liberia':'AFRICA','Sierra Leone':'AFRICA','Guinea-Bissau':'AFRICA',
+  'Uganda':'AFRICA','Rwanda':'AFRICA','Ethiopia':'AFRICA','Senegal':'AFRICA',
+  'Angola':'AFRICA','Ghana':'AFRICA','South Africa':'AFRICA',
+  'Germany':'EUROPE','Italy':'EUROPE','United Kingdom':'EUROPE','Greece':'EUROPE',
+  'Romania':'EUROPE','Bulgaria':'EUROPE','Ukraine':'EUROPE','Russia':'EUROPE',
+  'Czech Republic':'EUROPE','Hungary':'EUROPE','Poland':'EUROPE','France':'EUROPE',
+  'India':'ASIA','Philippines':'ASIA','Cambodia':'ASIA','Thailand':'ASIA',
+  'Japan':'ASIA','Indonesia':'ASIA','Nepal':'ASIA','Bangladesh':'ASIA',
+  'Myanmar':'ASIA','South Korea':'ASIA','Israel':'ASIA','Turkey':'ASIA',
+  'United Arab Emirates':'ASIA',
+  'United States':'N. AMERICA','Mexico':'N. AMERICA','Guatemala':'N. AMERICA',
+  'Honduras':'N. AMERICA','Nicaragua':'N. AMERICA','Haiti':'N. AMERICA',
+  'Jamaica':'N. AMERICA','Panama':'N. AMERICA',
+  'Colombia':'S. AMERICA','Ecuador':'S. AMERICA','Peru':'S. AMERICA',
+  'Brazil':'S. AMERICA','Guyana':'S. AMERICA','Argentina':'S. AMERICA',
+  'Samoa':'OCEANIA','New Zealand':'OCEANIA',
+};
+
+
+
+// ════════════════════════════════════════════════════
+// MAP SETUP
+// ════════════════════════════════════════════════════
+const W = 2400;
+const H = 1350;
+
+const svg = d3.select('#map-container').append('svg')
+  .attr('viewBox', `0 0 ${W} ${H}`)
+  .attr('preserveAspectRatio', 'xMidYMid meet');
+
+const defs = svg.append('defs');
+
+// ── SVG Filters & Gradients ─────────────────────
+
+// Gold glow for missions
+const blueGlow = defs.append('filter').attr('id', 'glow-blue').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+blueGlow.append('feGaussianBlur').attr('in', 'SourceGraphic').attr('stdDeviation', '6').attr('result', 'blur');
+blueGlow.append('feColorMatrix').attr('in', 'blur').attr('type', 'matrix')
+  .attr('values', '0 0 0 0 0.94  0 0 0 0 0.75  0 0 0 0 0.16  0 0 0 1.2 0').attr('result', 'blue');
+const bmg = blueGlow.append('feMerge');
+bmg.append('feMergeNode').attr('in', 'blue');
+bmg.append('feMergeNode').attr('in', 'SourceGraphic');
+
+// Gold glow for schools
+const goldGlow = defs.append('filter').attr('id', 'glow-gold').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+goldGlow.append('feGaussianBlur').attr('in', 'SourceGraphic').attr('stdDeviation', '5').attr('result', 'blur');
+goldGlow.append('feColorMatrix').attr('in', 'blur').attr('type', 'matrix')
+  .attr('values', '0 0 0 0 0.94  0 0 0 0 0.75  0 0 0 0 0.16  0 0 0 1 0').attr('result', 'gold');
+const gmg = goldGlow.append('feMerge');
+gmg.append('feMergeNode').attr('in', 'gold');
+gmg.append('feMergeNode').attr('in', 'SourceGraphic');
+
+// Big glow for HQ star
+const starGlow = defs.append('filter').attr('id', 'glow-star').attr('x', '-100%').attr('y', '-100%').attr('width', '300%').attr('height', '300%');
+starGlow.append('feGaussianBlur').attr('in', 'SourceGraphic').attr('stdDeviation', '8').attr('result', 'blur');
+starGlow.append('feColorMatrix').attr('in', 'blur').attr('type', 'matrix')
+  .attr('values', '0 0 0 0 0.94  0 0 0 0 0.75  0 0 0 0 0.25  0 0 0 1.5 0').attr('result', 'glow');
+const smg = starGlow.append('feMerge');
+smg.append('feMergeNode').attr('in', 'glow');
+smg.append('feMergeNode').attr('in', 'SourceGraphic');
+
+
+// Blur for particle shadow trails
+const pBlur = defs.append('filter').attr('id', 'particle-blur').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+pBlur.append('feGaussianBlur').attr('stdDeviation', '6');
+
+
+// Coastline glow filter (bright neon)
+const coastGlow = defs.append('filter').attr('id', 'coast-glow').attr('x', '-5%').attr('y', '-5%').attr('width', '110%').attr('height', '110%');
+coastGlow.append('feGaussianBlur').attr('in', 'SourceGraphic').attr('stdDeviation', '3').attr('result', 'blur');
+const cgMerge = coastGlow.append('feMerge');
+cgMerge.append('feMergeNode').attr('in', 'blur');
+cgMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+// ── Enhancement 4: Globe atmosphere gradient (holographic) ──
+const globeAtmo = defs.append('radialGradient').attr('id', 'globe-atmosphere')
+  .attr('cx','50%').attr('cy','48%').attr('r','50%');
+globeAtmo.append('stop').attr('offset','0%').attr('stop-color','#003060').attr('stop-opacity',0.3);
+globeAtmo.append('stop').attr('offset','50%').attr('stop-color','#001830').attr('stop-opacity',0.15);
+globeAtmo.append('stop').attr('offset','100%').attr('stop-color','#000000').attr('stop-opacity',0);
+
+
+// ── Enhancement 2: Flash glow filter (cyan) ──
+const flashGlow = defs.append('filter').attr('id','flash-glow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+flashGlow.append('feGaussianBlur').attr('in','SourceGraphic').attr('stdDeviation','12').attr('result','blur');
+flashGlow.append('feColorMatrix').attr('in','blur').attr('type','matrix')
+  .attr('values','0 0 0 0 0  0 0 0 0 0.9  0 0 0 0 1  0 0 0 1.8 0').attr('result','glow');
+const fmg = flashGlow.append('feMerge');
+fmg.append('feMergeNode').attr('in','glow');
+fmg.append('feMergeNode').attr('in','SourceGraphic');
+
+// Ocean radial gradient
+const oceanGrad = defs.append('radialGradient').attr('id', 'ocean-grad')
+  .attr('cx', '50%').attr('cy', '50%').attr('r', '60%');
+oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#061020').attr('stop-opacity', 0.85);
+oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#020408').attr('stop-opacity', 0.75);
+
+// Halo gradients
+const missionHalo = defs.append('radialGradient').attr('id', 'halo-mission');
+missionHalo.append('stop').attr('offset', '0%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.7);
+missionHalo.append('stop').attr('offset', '100%').attr('stop-color', '#f0c040').attr('stop-opacity', 0);
+
+const schoolHalo = defs.append('radialGradient').attr('id', 'halo-school');
+schoolHalo.append('stop').attr('offset', '0%').attr('stop-color', '#9b59b6').attr('stop-opacity', 0.6);
+schoolHalo.append('stop').attr('offset', '100%').attr('stop-color', '#9b59b6').attr('stop-opacity', 0);
+
+const accentHalo = defs.append('radialGradient').attr('id', 'halo-accent');
+accentHalo.append('stop').attr('offset', '0%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.6);
+accentHalo.append('stop').attr('offset', '100%').attr('stop-color', '#f0c040').attr('stop-opacity', 0);
+
+const starHaloGrad = defs.append('radialGradient').attr('id', 'halo-star');
+starHaloGrad.append('stop').attr('offset', '0%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.7);
+starHaloGrad.append('stop').attr('offset', '50%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.15);
+starHaloGrad.append('stop').attr('offset', '100%').attr('stop-color', '#f0c040').attr('stop-opacity', 0);
+
+// Light stream gradient
+const grad = defs.append('linearGradient').attr('id', 'light-grad')
+  .attr('gradientUnits', 'userSpaceOnUse');
+grad.append('stop').attr('offset', '0%').attr('stop-color', '#f0c040').attr('stop-opacity', 0);
+grad.append('stop').attr('offset', '30%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.8);
+grad.append('stop').attr('offset', '80%').attr('stop-color', '#ffe880').attr('stop-opacity', 1);
+grad.append('stop').attr('offset', '100%').attr('stop-color', '#ffffff').attr('stop-opacity', 1);
+
+// Shadow trail gradient
+const shadowGrad = defs.append('linearGradient').attr('id', 'light-shadow-grad')
+  .attr('gradientUnits', 'userSpaceOnUse');
+shadowGrad.append('stop').attr('offset', '0%').attr('stop-color', '#f0c040').attr('stop-opacity', 0);
+shadowGrad.append('stop').attr('offset', '50%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.3);
+shadowGrad.append('stop').attr('offset', '100%').attr('stop-color', '#f0c040').attr('stop-opacity', 0.5);
+
+// Blue light stream gradient (alternate color)
+const blueLight = defs.append('linearGradient').attr('id', 'light-grad-blue')
+  .attr('gradientUnits', 'userSpaceOnUse');
+blueLight.append('stop').attr('offset', '0%').attr('stop-color', '#00e5ff').attr('stop-opacity', 0);
+blueLight.append('stop').attr('offset', '30%').attr('stop-color', '#00e5ff').attr('stop-opacity', 0.7);
+blueLight.append('stop').attr('offset', '80%').attr('stop-color', '#60f0ff').attr('stop-opacity', 1);
+blueLight.append('stop').attr('offset', '100%').attr('stop-color', '#ffffff').attr('stop-opacity', 1);
+
+const blueShadow = defs.append('linearGradient').attr('id', 'light-shadow-blue')
+  .attr('gradientUnits', 'userSpaceOnUse');
+blueShadow.append('stop').attr('offset', '0%').attr('stop-color', '#00e5ff').attr('stop-opacity', 0);
+blueShadow.append('stop').attr('offset', '50%').attr('stop-color', '#00e5ff').attr('stop-opacity', 0.25);
+blueShadow.append('stop').attr('offset', '100%').attr('stop-color', '#00e5ff').attr('stop-opacity', 0.4);
+
+const projection = d3.geoMercator()
+  .scale(W / 6.12)
+  .center([0, 20])
+  .translate([W / 2, H / 2])
+  .clipExtent([[-400, -400], [W + 400, H + 400]]);
+const path = d3.geoPath().projection(projection);
+
+const mapGroup = svg.append('g')
+  .attr('transform', `translate(0, 0) scale(1)`);
+
+// Ocean
+mapGroup.append('rect').attr('width', W*3).attr('height', H*3).attr('x', -W).attr('y', -H).attr('fill', 'url(#ocean-grad)');
+
+// ── Enhancement 4: Globe atmosphere ellipse ──
+mapGroup.append('ellipse')
+  .attr('cx', W/2).attr('cy', H/2)
+  .attr('rx', W*0.55).attr('ry', H*0.6)
+  .attr('fill', 'url(#globe-atmosphere)')
+  .attr('pointer-events', 'none');
+
+// Graticule
+mapGroup.append('path').datum(d3.geoGraticule().step([20,20])()).attr('class', 'graticule').attr('d', path);
+
+// Animated ocean wave lines
+const waveGroup = mapGroup.append('g').attr('class', 'ocean-wave-group');
+for (let y = -H; y < H * 2; y += 60) {
+  let d = '';
+  for (let x = -W; x < W * 3; x += 200) {
+    const cy = y + Math.sin(x * 0.005) * 15;
+    d += (x === -W ? 'M' : 'S') + (x + 100) + ',' + (cy - 10 + Math.random() * 8) + ' ' + (x + 200) + ',' + cy;
+  }
+  waveGroup.append('path').attr('class', 'ocean-wave').attr('d', d);
+}
+
+// ════════════════════════════════════════════════════
+// CLUSTER DETECTION
+// ════════════════════════════════════════════════════
+const CLUSTER_RADIUS = 40; // pixels — balanced for LED table touch + readability
+
+function findClusters(locs) {
+  const positioned = locs.map(loc => {
+    const pos = projection([loc.lng, loc.lat]);
+    return { loc, pos };
+  }).filter(p => p.pos);
+
+  const used = new Set();
+  const clusters = [];
+
+  for (let i = 0; i < positioned.length; i++) {
+    if (used.has(i)) continue;
+    const cluster = [positioned[i]];
+    used.add(i);
+    for (let j = i + 1; j < positioned.length; j++) {
+      if (used.has(j)) continue;
+      const dx = positioned[i].pos[0] - positioned[j].pos[0];
+      const dy = positioned[i].pos[1] - positioned[j].pos[1];
+      if (Math.sqrt(dx*dx + dy*dy) < CLUSTER_RADIUS) {
+        cluster.push(positioned[j]);
+        used.add(j);
+      }
+    }
+    clusters.push(cluster);
+  }
+  return clusters;
+}
+
+// ════════════════════════════════════════════════════
+// LOAD MAP & RENDER
+// ════════════════════════════════════════════════════
+const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
+
+d3.json(WORLD_URL).then(world => {
+  const countries = topojson.feature(world, world.objects.countries);
+
+  // Continent classification by UN M49 numeric codes
+  const africaCodes = new Set([12,24,204,72,854,108,120,132,140,148,174,178,180,262,818,226,232,748,231,260,266,270,288,324,624,384,404,426,430,434,450,454,466,478,480,504,508,516,562,566,646,678,686,690,694,706,710,728,729,736,834,768,788,800,894]);
+  const europeCodes = new Set([8,20,40,112,56,70,100,191,196,203,208,233,246,250,276,300,348,352,372,380,428,440,442,807,470,498,499,528,578,616,620,642,643,688,703,705,724,752,756,804,826,680]);
+  const asiaCodes = new Set([4,31,48,50,64,96,104,116,156,268,356,360,364,368,376,392,400,398,414,417,418,422,458,462,496,104,524,512,586,608,634,682,702,144,760,762,764,792,795,784,860,704,887]);
+  const namericaCodes = new Set([28,44,52,84,124,188,192,212,214,222,308,320,332,340,388,484,558,591,630,659,662,670,780,840]);
+  const samericaCodes = new Set([32,68,76,152,170,218,238,254,328,600,604,740,858,862]);
+  const oceaniaCodes = new Set([36,242,296,584,583,520,554,585,598,882,90,776,798,548]);
+
+  function continentClass(id) {
+    const n = +id;
+    if (africaCodes.has(n)) return 'country-africa';
+    if (europeCodes.has(n)) return 'country-europe';
+    if (asiaCodes.has(n)) return 'country-asia';
+    if (namericaCodes.has(n)) return 'country-namerica';
+    if (samericaCodes.has(n)) return 'country-samerica';
+    if (oceaniaCodes.has(n)) return 'country-oceania';
+    return 'country-other';
+  }
+
+  // Smooth atmospheric glow behind countries (CSS shadow, no SVG filter)
+  mapGroup.append('g').attr('class', 'land-glow-layer')
+    .selectAll('path').data(countries.features).join('path')
+    .attr('d', path)
+    .attr('fill', 'none')
+    .attr('stroke', 'rgba(0,160,230,0.35)')
+    .attr('stroke-width', '8')
+    .style('filter', 'blur(16px)');
+
+  mapGroup.selectAll('.country').data(countries.features).join('path')
+    .attr('class', d => `country ${continentClass(d.id)}`)
+    .attr('d', path);
+
+  // Wide outer coastline glow (CSS blur, smooth)
+  mapGroup.append('g').attr('class', 'coastline-layer-wide')
+    .selectAll('path').data(countries.features).join('path')
+    .attr('class', 'coastline-glow-bright')
+    .attr('d', path)
+    .style('filter', 'blur(6px)');
+
+  // Sharp inner coastline outlines (bright neon edge)
+  mapGroup.append('g').attr('class', 'coastline-layer')
+    .selectAll('path').data(countries.features).join('path')
+    .attr('class', 'coastline-glow')
+    .attr('d', path);
+
+
+  const hqPos = projection([HQ.lng, HQ.lat]);
+
+  // ── Region Labels ──────────────────────────────
+  const regionLabels = [
+    { name: 'AFRICA', lat: 5, lng: 20 },
+    { name: 'EUROPE', lat: 52, lng: 15 },
+    { name: 'ASIA', lat: 40, lng: 85 },
+    { name: 'NORTH AMERICA', lat: 45, lng: -100 },
+    { name: 'SOUTH AMERICA', lat: -18, lng: -58 },
+    { name: 'OCEANIA', lat: -25, lng: 140 },
+  ];
+  const labelsGroup = mapGroup.append('g').attr('class', 'region-labels');
+  regionLabels.forEach(r => {
+    const pos = projection([r.lng, r.lat]);
+    if (!pos) return;
+    labelsGroup.append('text')
+      .attr('class', 'region-label')
+      .attr('x', pos[0]).attr('y', pos[1])
+      .text(r.name)
+      .style('opacity', 1);
+  });
+
+  // ── Great Circle Arcs from HQ ──────────────────
+  const arcsGroup = mapGroup.append('g').attr('class', 'arcs');
+  const arcTargets = new Set();
+  locations.filter(l => l.id !== 'hq').forEach(loc => {
+    const key = `${loc.lat.toFixed(1)},${loc.lng.toFixed(1)}`;
+    if (arcTargets.has(key)) return;
+    arcTargets.add(key);
+    // Skip arcs that wrap around the map (longitude span > 180°)
+    const lngSpan = Math.abs(HQ.lng - loc.lng);
+    if (lngSpan > 180) return;
+    // Interpolate as a series of points to avoid wild great-circle wrapping
+    const steps = 50;
+    const coords = [];
+    for (let t = 0; t <= steps; t++) {
+      const f = t / steps;
+      const lng = HQ.lng + (loc.lng - HQ.lng) * f;
+      const lat = HQ.lat + (loc.lat - HQ.lat) * f;
+      // Skip points that project outside the clip extent
+      const pt = projection([lng, lat]);
+      if (!pt) continue;
+      coords.push([lng, lat]);
+    }
+    if (coords.length < 2) return;
+    const arcData = {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: coords }
+    };
+    arcsGroup.append('path')
+      .attr('class', 'arc-line')
+      .attr('d', path(arcData))
+      .style('opacity', 1);
+  });
+
+  // Collect unique projected positions for all locations
+  const markerPositions = [];
+  const posKeys = new Set();
+  locations.forEach(loc => {
+    const pos = projection([loc.lng, loc.lat]);
+    if (!pos) return;
+    const key = `${Math.round(pos[0])},${Math.round(pos[1])}`;
+    if (posKeys.has(key)) return;
+    posKeys.add(key);
+    markerPositions.push(pos);
+  });
+
+  // ── Wandering light particles ─────────────────
+  const lightsGroup = mapGroup.append('g').attr('class', 'lights');
+  const hiddenGroup = mapGroup.append('g').style('visibility', 'hidden');
+  const NUM_PARTICLES = 4;
+
+  function makeCurvedPath(from, to) {
+    const midX = (from[0] + to[0]) / 2;
+    const midY = Math.min(from[1], to[1]) - Math.abs(from[0] - to[0]) * 0.15;
+    const d = `M${from[0]},${from[1]} Q${midX},${midY} ${to[0]},${to[1]}`;
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    el.setAttribute('d', d);
+    hiddenGroup.node().appendChild(el);
+    return el;
+  }
+
+  // Pre-sample path points to avoid getPointAtLength every frame
+  function samplePath(pathEl, numSamples) {
+    const totalLen = pathEl.getTotalLength();
+    const points = [];
+    for (let i = 0; i <= numSamples; i++) {
+      const pt = pathEl.getPointAtLength((i / numSamples) * totalLen);
+      points.push({ x: pt.x, y: pt.y });
+    }
+    return { points, totalLen };
+  }
+
+  function interpolatePoints(points, t) {
+    const idx = t * (points.length - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.min(lo + 1, points.length - 1);
+    const frac = idx - lo;
+    return { x: points[lo].x + (points[hi].x - points[lo].x) * frac,
+             y: points[lo].y + (points[hi].y - points[lo].y) * frac };
+  }
+
+  function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function launchParticle(delay, colorIdx) {
+    const isBlue = colorIdx % 3 === 1;
+    const mainGrad = isBlue ? 'url(#light-grad-blue)' : 'url(#light-grad)';
+    const shadowGradId = isBlue ? 'url(#light-shadow-blue)' : 'url(#light-shadow-grad)';
+    const shadow = lightsGroup.append('path')
+      .attr('class', 'light-shadow')
+      .attr('stroke', shadowGradId)
+      .attr('opacity', 0);
+    const particle = lightsGroup.append('path')
+      .attr('class', 'light-particle')
+      .attr('stroke', mainGrad)
+      .attr('opacity', 0);
+
+    let lastPos = hqPos;
+
+    function journey() {
+      let nextPos;
+      const roll = Math.random();
+      if (roll < 0.35) {
+        nextPos = hqPos;
+      } else if (roll < 0.55) {
+        lastPos = hqPos;
+        nextPos = pickRandom(markerPositions);
+      } else {
+        nextPos = pickRandom(markerPositions);
+      }
+
+      if (Math.abs(lastPos[0] - nextPos[0]) < 2 && Math.abs(lastPos[1] - nextPos[1]) < 2) {
+        nextPos = pickRandom(markerPositions);
+      }
+
+      const pathEl = makeCurvedPath(lastPos, nextPos);
+      // Pre-sample 50 points — no getPointAtLength during animation
+      const { points, totalLen } = samplePath(pathEl, 50);
+      const trailFrac = 0.2;
+      const dur = 4000 + Math.random() * 3000;
+
+      const startTime = performance.now();
+      function tick() {
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(elapsed / dur, 1);
+        const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+
+        const headT = eased;
+        const tailT = Math.max(0, headT - trailFrac);
+
+        const steps = 6;
+        let d = '';
+        for (let s = 0; s <= steps; s++) {
+          const st = tailT + (headT - tailT) * (s / steps);
+          const pt = interpolatePoints(points, st);
+          d += (s === 0 ? 'M' : 'L') + (pt.x|0) + ',' + (pt.y|0);
+        }
+        particle.attr('d', d);
+        shadow.attr('d', d);
+
+        let op = 1;
+        if (t < 0.08) op = t / 0.08;
+        else if (t > 0.85) op = (1 - t) / 0.15;
+        particle.attr('opacity', op * 0.8);
+        shadow.attr('opacity', op * 0.4);
+
+        if (t < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          particle.attr('opacity', 0);
+          shadow.attr('opacity', 0);
+          lastPos = nextPos;
+          hiddenGroup.node().removeChild(pathEl);
+          setTimeout(journey, 2000 + Math.random() * 3000);
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
+    setTimeout(journey, delay);
+  }
+
+  for (let i = 0; i < NUM_PARTICLES; i++) {
+    launchParticle(i * 1500 + Math.random() * 800, i);
+  }
+
+  // ── Draw markers with clustering ──────────────
+  const markersGroup = mapGroup.append('g').attr('class', 'markers');
+  const clusters = findClusters(locations.filter(l => l.id !== 'hq'));
+
+  // Sort so school clusters render last (on top)
+  clusters.sort((a, b) => {
+    const aSchool = a.some(c => c.loc.type === 'school') ? 1 : 0;
+    const bSchool = b.some(c => c.loc.type === 'school') ? 1 : 0;
+    return aSchool - bSchool;
+  });
+  clusters.forEach((cluster, ci) => {
+    const avgX = cluster.reduce((s, c) => s + c.pos[0], 0) / cluster.length;
+    const avgY = cluster.reduce((s, c) => s + c.pos[1], 0) / cluster.length;
+
+    // Use type-specific color — schools purple, churches green, missions gold
+    const types = new Set(cluster.map(c => c.loc.type));
+    const hasSchool = types.has('school');
+    const hasChurch = types.has('church');
+    const color = hasSchool ? '#9b59b6' : hasChurch ? '#40c060' : '#f0c040';
+
+    const regions = [...new Set(cluster.map(c => countryRegion[c.loc.country] || 'OTHER'))].join(',');
+    const locIds = cluster.map(c => c.loc.id).join(',');
+    const g = markersGroup.append('g')
+      .attr('class', 'marker-group')
+      .attr('data-regions', regions)
+      .attr('data-loc-ids', locIds)
+      .attr('transform', `translate(${avgX}, ${avgY})`)
+      .style('opacity', 0);
+
+    // Click/touch handler — pass screen position
+    function handleClick(e) {
+      if (e) e.preventDefault();
+      const screenPos = getSVGScreenPos(avgX, avgY);
+      if (cluster.length === 1) {
+        openPanel(cluster[0].loc, screenPos);
+      } else {
+        openClusterPopup(cluster, avgX, avgY);
+      }
+    }
+    g.on('click', handleClick).on('touchend', handleClick);
+
+    // Halo glow behind dot
+    const haloFill = hasSchool ? 'url(#halo-school)' : 'url(#halo-accent)';
+    g.append('circle').attr('class', 'marker-halo marker-breathe').attr('r', 32).attr('fill', haloFill);
+
+    // Glow filter per type
+    const glowId = 'glow-gold';
+
+    // Center dot
+    g.append('circle').attr('class', 'marker-dot').attr('r', cluster.length > 1 ? 14 : 11).attr('fill', color)
+      .attr('filter', `url(#${glowId})`);
+
+    // Cluster count badge
+    if (cluster.length > 1) {
+      g.append('circle').attr('cx', 16).attr('cy', -16).attr('r', 12).attr('fill', color);
+      g.append('text').attr('x', 16).attr('y', -11).attr('text-anchor', 'middle')
+        .attr('font-size', '14px').attr('font-weight', '700').attr('fill', '#0a0e1a')
+        .text(cluster.length);
+    }
+
+    // Label (first item name or country)
+    g.append('text').attr('class', 'marker-label').attr('y', -30)
+      .text(cluster.length === 1 ? cluster[0].loc.name : cluster[0].loc.country);
+
+    g.style('opacity', 1);
+  });
+
+  // ── HQ Star marker (Cleveland, TN) ────────────
+  const hqG = markersGroup.append('g')
+    .attr('class', 'marker-group hq-star')
+    .attr('data-regions', 'N. AMERICA')
+    .attr('transform', `translate(${hqPos[0]}, ${hqPos[1]})`)
+    .style('opacity', 0);
+
+  // Large halo behind star
+  hqG.append('circle').attr('class', 'star-glow').attr('r', 70).attr('fill', 'url(#halo-star)');
+
+  // Star shape (scaled for large LED table)
+  const starPath = 'M0,-36 L8.4,-11.7 34,-11.7 12.9,4.3 21.1,28.6 0,12.9 -21.1,28.6 -12.9,4.3 -34,-11.7 -8.4,-11.7Z';
+  hqG.append('path')
+    .attr('class', 'star-shape')
+    .attr('d', starPath)
+    .attr('fill', '#f0c040')
+    .attr('stroke', '#ffe880')
+    .attr('stroke-width', 2)
+    .attr('filter', 'url(#glow-star)');
+
+  hqG.append('text').attr('class', 'marker-label').attr('y', -40)
+    .text('Cleveland, TN — World Headquarters');
+
+  // Use HQ data from API if available, otherwise fallback
+  const hqFromApi = locations.find(l => l.id === 'hq');
+  const hqData = hqFromApi || {
+    id: 'hq', type: 'hq', name: 'Church of God International Offices',
+    country: 'United States',
+    description: 'The world headquarters of the Church of God, located in Cleveland, Tennessee since 1886. Home to the International Offices, overseeing ministry in 186 countries with over 7 million members worldwide. Also home to Lee University and Pentecostal Theological Seminary.',
+    stats: { established: '1886', countries: '186', members: '7M+' }, image: null
+  };
+  function hqClick(e) {
+    if (e) e.preventDefault();
+    openPanel(hqData, getSVGScreenPos(hqPos[0], hqPos[1]));
+  }
+  hqG.on('click', hqClick).on('touchend', hqClick);
+
+  hqG.style('opacity', 1);
+
+
+  // ══════════════════════════════════════════════════
+  // Enhancement 1: Sonar Pulse Rings
+  // ══════════════════════════════════════════════════
+  const pulseGroup = mapGroup.append('g').attr('class', 'pulse-rings');
+  const clusterPositions = clusters.map(c => {
+    const avgX = c.reduce((s, p) => s + p.pos[0], 0) / c.length;
+    const avgY = c.reduce((s, p) => s + p.pos[1], 0) / c.length;
+    const color = '#f0c040';
+    return { x: avgX, y: avgY, color };
+  });
+
+  function spawnPulse() {
+    const cp = clusterPositions[Math.floor(Math.random() * clusterPositions.length)];
+    for (let i = 0; i < 2; i++) {
+      const ring = pulseGroup.append('circle')
+        .attr('class', 'pulse-ring')
+        .attr('cx', cp.x).attr('cy', cp.y)
+        .attr('r', 0).attr('stroke', cp.color).attr('stroke-width', 2.5).attr('opacity', 0.5);
+      const delay = i * 400;
+      const start = performance.now() + delay;
+      const dur = 2200;
+      (function animate() {
+        const t = Math.min((performance.now() - start) / dur, 1);
+        if (t < 0) { requestAnimationFrame(animate); return; }
+        const ease = 1 - Math.pow(1 - t, 2);
+        ring.attr('r', ease * 120).attr('opacity', 0.5 * (1 - t)).attr('stroke-width', 2.5 - t * 2);
+        if (t < 1) requestAnimationFrame(animate);
+        else ring.remove();
+      })();
+    }
+  }
+  setTimeout(() => setInterval(spawnPulse, 6000 + Math.random() * 3000), 4000);
+
+  // ══════════════════════════════════════════════════
+  // Enhancement 2: Data Transmission Flash Along Arcs
+  // ══════════════════════════════════════════════════
+  const arcPathEls = [];
+  const arcDestPositions = [];
+  arcsGroup.selectAll('.arc-line').each(function(d, i) {
+    arcPathEls.push(this);
+    // Get the endpoint of this arc (destination position)
+    const totalLen = this.getTotalLength();
+    const endPt = this.getPointAtLength(totalLen);
+    arcDestPositions.push({ x: endPt.x, y: endPt.y });
+  });
+
+  const flashGroup = mapGroup.append('g').attr('class', 'flash-arcs');
+
+  // Pre-sample all arc paths once
+  const arcSampled = arcPathEls.map(el => {
+    const totalLen = el.getTotalLength();
+    const pts = [];
+    for (let i = 0; i <= 40; i++) {
+      const pt = el.getPointAtLength((i / 40) * totalLen);
+      pts.push({ x: pt.x, y: pt.y });
+    }
+    return { points: pts, totalLen };
+  });
+
+  function flashArc() {
+    if (arcSampled.length === 0) return;
+    const idx = Math.floor(Math.random() * arcSampled.length);
+    const { points, totalLen } = arcSampled[idx];
+    if (totalLen < 10) return;
+
+    const trailFrac = 0.25;
+    const dur = 1800;
+    const flashPath = flashGroup.append('path')
+      .attr('fill', 'none')
+      .attr('stroke', 'rgba(0,229,255,0.9)')
+      .attr('stroke-width', 3)
+      .attr('filter', 'url(#flash-glow)')
+      .attr('stroke-linecap', 'round');
+
+    const startT = performance.now();
+    (function tick() {
+      const t = Math.min((performance.now() - startT) / dur, 1);
+      const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+      const headT = ease;
+      const tailT = Math.max(0, headT - trailFrac);
+      let d = '';
+      for (let s = 0; s <= 6; s++) {
+        const st = tailT + (headT - tailT) * (s / 6);
+        const pt = interpolatePoints(points, st);
+        d += (s === 0 ? 'M' : 'L') + (pt.x|0) + ',' + (pt.y|0);
+      }
+      flashPath.attr('d', d);
+      let op = 1;
+      if (t < 0.05) op = t / 0.05;
+      else if (t > 0.8) op = (1 - t) / 0.2;
+      flashPath.attr('opacity', op);
+
+      if (t < 1) requestAnimationFrame(tick);
+      else {
+        flashPath.remove();
+        const nearestMarker = document.querySelector(`.marker-group:not(.hq-star)`);
+        if (nearestMarker) {
+          nearestMarker.classList.add('marker-flare');
+          setTimeout(() => nearestMarker.classList.remove('marker-flare'), 600);
+        }
+      }
+    })();
+  }
+  setTimeout(() => setInterval(flashArc, 10000 + Math.random() * 5000), 6000);
+
+
+
+});
+
+// ════════════════════════════════════════════════════
+// HELPER: SVG coords → screen coords
+// ════════════════════════════════════════════════════
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+function getSVGScreenPos(svgX, svgY) {
+  const svgEl = document.querySelector('#map-container svg');
+  const pt = svgEl.createSVGPoint();
+  pt.x = svgX; pt.y = svgY;
+  const ctm = document.querySelector('.markers').getCTM();
+  const screenPt = pt.matrixTransform(ctm);
+  const rect = svgEl.getBoundingClientRect();
+  return { x: rect.left + screenPt.x, y: rect.top + screenPt.y };
+}
+
+// ════════════════════════════════════════════════════
+// CLUSTER POPUP
+// ════════════════════════════════════════════════════
+const clusterPopup = document.getElementById('cluster-popup');
+
+function openClusterPopup(cluster, svgX, svgY) {
+  closePanel();
+  const screenPos = getSVGScreenPos(svgX, svgY);
+
+  clusterPopup.style.left = screenPos.x + 'px';
+  clusterPopup.style.top = screenPos.y + 'px';
+
+  let html = '';
+  cluster.forEach(c => {
+    const dotColor = c.loc.type === 'school' ? '#9b59b6' : '#f0c040';
+    const typeLabel = c.loc.type === 'mission' ? 'Mission' : c.loc.type === 'hq' ? 'Headquarters' : 'School';
+    html += `<button class="cluster-item" data-id="${c.loc.id}">
+      <span class="cluster-item-dot" style="background:${dotColor};box-shadow:0 0 6px ${dotColor}"></span>
+      <span>${c.loc.name}</span>
+      <span class="cluster-item-type">${typeLabel}</span>
+    </button>`;
+  });
+  clusterPopup.innerHTML = html;
+  clusterPopup.classList.add('open');
+
+  // Bind clicks — pass screen position so panel opens near dot
+  clusterPopup.querySelectorAll('.cluster-item').forEach(btn => {
+    function handle(e) {
+      if (e) e.preventDefault();
+      const loc = locations.find(l => l.id === btn.dataset.id);
+      clusterPopup.classList.remove('open');
+      if (loc) openPanel(loc, screenPos);
+    }
+    btn.addEventListener('click', handle);
+    btn.addEventListener('touchend', handle);
+  });
+}
+
+// Close cluster popup on outside click
+document.addEventListener('click', (e) => {
+  if (!clusterPopup.contains(e.target) && !e.target.closest('.marker-group')) {
+    clusterPopup.classList.remove('open');
+  }
+});
+
+// ════════════════════════════════════════════════════
+// INFO PANEL
+// ════════════════════════════════════════════════════
+const panel = document.getElementById('info-panel');
+const panelContent = document.getElementById('panel-content');
+const overlay = document.getElementById('overlay');
+
+function openPanel(loc, screenPos, forceRight) {
+  // Always use latest data from API (cluster refs may be stale hardcoded data)
+  loc = locations.find(l => l.id === loc.id) || loc;
+  const typeLabel = loc.type === 'mission' ? 'Mission Project' : loc.type === 'hq' ? 'World Headquarters' : 'School / Seminary';
+  const icon = loc.type === 'mission' ? '🌍' : loc.type === 'hq' ? '⭐' : '🎓';
+
+  let statsHtml = '';
+  if (loc.stats) {
+    const entries = Object.entries(loc.stats);
+    statsHtml = '<div class="panel-stats">' + entries.map(([key, val]) => `
+      <div class="panel-stat">
+        <div class="panel-stat-value">${val}</div>
+        <div class="panel-stat-label">${key.replace(/_/g, ' ')}</div>
+      </div>
+    `).join('') + '</div>';
+  }
+
+  const missionSVG = `<svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--mission-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>`;
+  const schoolSVG = `<svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--school-color)"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>`;
+  const placeholderSVG = loc.type === 'school' ? schoolSVG : missionSVG;
+  const bgClass = loc.type === 'school' ? 'school-bg' : 'mission-bg';
+
+  const allImages = loc.images || (loc.image ? [loc.image] : []);
+  let imageHtml;
+  if (allImages.length > 1) {
+    const slides = allImages.map(url => `<div class="panel-slide"><div class="blur-bg" style="background-image:url('${url}')"></div><img src="${url}" alt="${loc.name}" loading="lazy"></div>`).join('');
+    const dots = allImages.map((_, i) => `<button class="carousel-dot ${i === 0 ? 'active' : ''}" data-slide="${i}"></button>`).join('');
+    imageHtml = `<div class="panel-image"><div class="carousel" data-count="${allImages.length}">
+      <div class="carousel-track">${slides}</div>
+      <button class="carousel-arrow left" onclick="carouselNav(this,-1)">&#8249;</button>
+      <button class="carousel-arrow right" onclick="carouselNav(this,1)">&#8250;</button>
+      <div class="carousel-dots">${dots}</div>
+    </div></div>`;
+  } else if (allImages.length === 1) {
+    imageHtml = `<div class="panel-image"><div class="panel-slide"><div class="blur-bg" style="background-image:url('${allImages[0]}')"></div><img src="${allImages[0]}" alt="${loc.name}" loading="lazy"></div></div>`;
+  } else {
+    imageHtml = `<div class="panel-image"><div class="panel-image-placeholder ${bgClass}">${placeholderSVG}<span class="placeholder-country">${loc.country}</span></div></div>`;
+  }
+
+  panelContent.innerHTML = `
+    <div class="panel-type ${loc.type}">${typeLabel}</div>
+    <div class="panel-title">${loc.name}</div>
+    <div class="panel-location">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      ${loc.country}
+    </div>
+    ${imageHtml}
+    <div class="panel-desc">${loc.description}</div>
+    ${statsHtml}
+  `;
+
+  // Position panel near the clicked dot
+  if (screenPos) {
+    const panelW = Math.min(400, 2400 * 0.75);
+    const panelH = panel.scrollHeight || 400;
+    const vw = 2400;
+    const vh = 1350;
+
+    let left, top;
+
+    if (forceRight) {
+      // During prayer journey: always place to the RIGHT of the centered dot
+      left = screenPos.x + 180;
+      top = screenPos.y - panelH / 2;
+    } else {
+      // Normal mode: prefer right, fall back to left
+      left = screenPos.x + 30;
+      if (left + panelW > vw - 20) left = screenPos.x - panelW - 30;
+    }
+
+    if (left + panelW > vw - 20) left = vw - panelW - 20;
+    if (left < 10) left = 10;
+
+    if (top === undefined) top = screenPos.y;
+    if (top + panelH > vh - 10) top = vh - panelH - 10;
+    if (top < 10) top = 10;
+
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+
+  panel.classList.add('open');
+  if (!forceRight) overlay.classList.add('active');
+}
+
+function closePanel() {
+  panel.classList.remove('open');
+  overlay.classList.remove('active');
+  clusterPopup.classList.remove('open');
+}
+
+document.getElementById('panel-close').addEventListener('click', closePanel);
+overlay.addEventListener('click', closePanel);
+overlay.addEventListener('touchend', (e) => { e.preventDefault(); closePanel(); });
+
+// ── Carousel navigation ─────────────────────────
+function carouselNav(btn, dir) {
+  const carousel = btn.closest('.carousel');
+  const track = carousel.querySelector('.carousel-track');
+  const count = parseInt(carousel.dataset.count);
+  let current = parseInt(carousel.dataset.current || '0');
+  current = (current + dir + count) % count;
+  carousel.dataset.current = current;
+  track.style.transform = `translateX(-${current * 100}%)`;
+  carousel.querySelectorAll('.carousel-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+// Touch swipe for carousel
+panel.addEventListener('touchstart', (e) => {
+  const carousel = e.target.closest('.carousel');
+  if (carousel) carousel._touchX = e.touches[0].clientX;
+}, { passive: true });
+panel.addEventListener('touchend', (e) => {
+  const carousel = e.target.closest('.carousel');
+  if (!carousel || !carousel._touchX) return;
+  const dx = e.changedTouches[0].clientX - carousel._touchX;
+  if (Math.abs(dx) > 40) {
+    const arrow = carousel.querySelector(dx < 0 ? '.carousel-arrow.right' : '.carousel-arrow.left');
+    if (arrow) arrow.click();
+  }
+  carousel._touchX = null;
+});
+// Dot click
+panel.addEventListener('click', (e) => {
+  if (e.target.classList.contains('carousel-dot')) {
+    const carousel = e.target.closest('.carousel');
+    const idx = parseInt(e.target.dataset.slide);
+    carousel.dataset.current = idx;
+    carousel.querySelector('.carousel-track').style.transform = `translateX(-${idx * 100}%)`;
+    carousel.querySelectorAll('.carousel-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+});
+
+// ── Handle resize ────────────────────────────────
+window.addEventListener('resize', () => {
+  svg.attr('viewBox', `0 0 2400 1350`);
+});
+
+// ── Animated stat counters ──────────────────────
+document.querySelectorAll('#title-banner .stat-value').forEach(el => {
+  const target = +el.dataset.target;
+  const suffix = el.dataset.suffix || '';
+  const dur = 2000;
+  setTimeout(() => {
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(eased * target) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }, 1500);
+});
+
+// ════════════════════════════════════════════════════
+// Enhancement 7: Scrolling Ticker Content
+// ════════════════════════════════════════════════════
+(function buildTicker() {
+  const tickerEl = document.getElementById('ticker-content');
+  if (!tickerEl) return;
+  const items = locations.map(loc => {
+    const stats = loc.stats ? Object.values(loc.stats)[0] : '';
+    return `${loc.name} — ${loc.country}${stats ? ' · ' + stats : ''}`;
+  });
+  // Duplicate for seamless scroll
+  const html = items.map(t => `<span>${t}</span><span class="ticker-dot">◆</span>`).join('');
+  tickerEl.innerHTML = html + html;
+})();
+
+// ════════════════════════════════════════════════════
+// Enhancement 8: Touch Ripple Effect
+// ════════════════════════════════════════════════════
+setTimeout(function initTouchRipple() {
+  const svgEl = document.querySelector('#map-container svg');
+  if (!svgEl) return;
+  const rippleGroup = d3.select(svgEl).append('g').attr('class', 'touch-ripple-layer');
+
+  function spawnRipple(svgX, svgY, color) {
+    for (let i = 0; i < 3; i++) {
+      const ring = rippleGroup.append('circle')
+        .attr('class', 'touch-ripple')
+        .attr('cx', svgX).attr('cy', svgY)
+        .attr('r', 0).attr('stroke', color || 'rgba(80,200,255,0.4)')
+        .attr('stroke-width', 2.5).attr('opacity', 0.5);
+      const delay = i * 150;
+      const start = performance.now() + delay;
+      const dur = 1200;
+      (function animate() {
+        const t = Math.min((performance.now() - start) / dur, 1);
+        if (t < 0) { requestAnimationFrame(animate); return; }
+        const ease = 1 - Math.pow(1 - t, 3);
+        ring.attr('r', ease * 150).attr('opacity', 0.5 * (1 - t)).attr('stroke-width', 2.5 - t * 2);
+        if (t < 1) requestAnimationFrame(animate);
+        else ring.remove();
+      })();
+    }
+  }
+
+  function getSVGCoords(e) {
+    const pt = svgEl.createSVGPoint();
+    const touch = e.changedTouches ? e.changedTouches[0] : e;
+    pt.x = touch.clientX; pt.y = touch.clientY;
+    return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+  }
+
+  svgEl.addEventListener('click', (e) => {
+    if (e.target.closest('#info-panel') || e.target.closest('#cluster-popup')) return;
+    const coords = getSVGCoords(e);
+    const isMarker = e.target.closest('.marker-group');
+    const color = isMarker ? 'rgba(240,192,64,0.5)' : 'rgba(80,200,255,0.3)';
+    spawnRipple(coords.x, coords.y, color);
+  });
+}, 3000);
+
+// ════════════════════════════════════════════════════
+// FEATURE: Touch Prompt
+// ════════════════════════════════════════════════════
+(function initTouchPrompt() {
+  const prompt = document.getElementById('touch-prompt');
+  if (!prompt) return;
+  setTimeout(() => { prompt.classList.add('visible'); }, 4000);
+
+  function dismissPrompt() {
+    prompt.classList.add('hidden');
+    prompt.classList.remove('visible');
+    document.removeEventListener('click', dismissPrompt);
+    document.removeEventListener('touchstart', dismissPrompt);
+    setTimeout(() => { if (prompt.parentNode) prompt.remove(); }, 600);
+  }
+  document.addEventListener('click', dismissPrompt, { once: true });
+  document.addEventListener('touchstart', dismissPrompt, { once: true });
+})();
+
+// ════════════════════════════════════════════════════
+// FEATURE: Guided Prayer Journey (replaces kiosk mode)
+// ════════════════════════════════════════════════════
+(function initPrayerJourney() {
+  const IDLE_TIMEOUT   = 600000;  // 10 minutes
+  const DWELL_TIME     = 12000;   // time per location
+
+  let idleTimer   = null;
+  let cycleTimer  = null;
+  let journeyActive = false;
+  let shownIndices = [];
+  let cyclePosition = 0;
+
+  const indicator   = document.getElementById('kiosk-indicator');
+  const prayerBar   = document.getElementById('prayer-bar');
+  const prayerName  = document.getElementById('prayer-name');
+  const prayerCountry = document.getElementById('prayer-country');
+  const prayerPrompt  = document.getElementById('prayer-prompt');
+  const prayerPhoto   = document.getElementById('prayer-photo');
+  const progressFill  = document.getElementById('prayer-progress');
+  const spotlight     = document.getElementById('prayer-spotlight');
+  const mapSvg = document.querySelector('#map-container svg');
+  let focusRingGroup = null;
+
+  // ── Curated prayer journey sequence (jumps across globe) ──
+  const journeySequence = [
+    'school-lee',            // Lee University (start)
+    'school-kenya',          // East Africa
+    'uk',                    // Europe
+    'brazil',                // South America
+    'school-india',          // South Asia
+    'school-germany',        // Central Europe
+    'school-nigeria',        // West Africa
+    'japan',                 // East Asia
+    'school-guatemala',      // Central America
+    'school-russia',         // Eastern Europe
+    'school-sa',             // Southern Africa
+    'school-philippines',    // Southeast Asia
+    'colombia',              // South America
+    'italy',                 // Southern Europe
+    'school-ghana',          // West Africa
+    'uae',                   // Middle East
+    'mexico',                // North America
+    'school-bulgaria',       // Eastern Europe
+    'tanzania',              // East Africa
+    'thailand',              // Southeast Asia
+    'school-haiti',          // Caribbean
+    'france',                // Western Europe
+    'school-ecuador',        // South America
+    'israel',                // Middle East
+    'south-korea',           // East Asia
+    'uganda',                // East Africa
+    'school-panama',         // Central America
+    'romania',               // Eastern Europe
+    'nepal',                 // South Asia
+    'peru',                  // South America
+    'turkey',                // Middle East
+    'school-jamaica',        // Caribbean
+    'indonesia',             // Southeast Asia
+    'poland',                // Eastern Europe
+    'ethiopia',              // East Africa
+    'cambodia',              // Southeast Asia
+    'school-argentina',      // South America
+    'greece',                // Southern Europe
+    'zambia',                // Southern Africa
+    'bangladesh',            // South Asia
+    'honduras',              // Central America
+    'ukraine',               // Eastern Europe
+    'angola',                // Southern Africa
+    'myanmar',               // Southeast Asia
+    'new-zealand',           // Pacific
+    'school-lee',            // USA
+    'senegal',               // West Africa
+    'czech',                 // Central Europe
+    'guyana',                // South America
+    'hungary',               // Central Europe
+  ];
+
+  const curtain = document.getElementById('journey-curtain');
+  const CURTAIN_MS = 600;
+
+  function playSwoosh() { /* removed */ }
+  const ZOOM_SCALE = 2.5;
+  const DEFAULT_TRANSFORM = 'translate(0, 0) scale(1)';
+
+  const journeyBtn = document.getElementById('prayer-journey-btn');
+  const exitJourneyBtn = document.getElementById('exit-journey-btn');
+  const pauseJourneyBtn = document.getElementById('pause-journey-btn');
+  const pauseIcon = document.getElementById('pause-icon');
+  const playIcon = document.getElementById('play-icon');
+  let journeyPaused = false;
+
+  function updatePauseBtn() {
+    if (!pauseIcon || !playIcon) return;
+    pauseIcon.style.display = journeyPaused ? 'none' : 'block';
+    playIcon.style.display = journeyPaused ? 'block' : 'none';
+  }
+
+  function togglePause() {
+    if (!journeyActive) return;
+    journeyPaused = !journeyPaused;
+    updatePauseBtn();
+    if (journeyPaused) {
+      if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+      if (progressFill) {
+        const computed = getComputedStyle(progressFill);
+        progressFill.style.transition = 'none';
+        progressFill.style.width = computed.width;
+      }
+    } else {
+      // Resume: finish progress bar over 1s, then transition to next
+      if (progressFill) {
+        progressFill.style.transition = 'width 1s linear';
+        progressFill.style.width = '100%';
+      }
+      cycleTimer = setTimeout(() => {
+        if (journeyActive) showNext();
+      }, 1000 + CURTAIN_MS);
+    }
+  }
+
+  function startJourney() {
+    if (journeyActive) return;
+    journeyActive = true;
+    journeyPaused = false;
+    updatePauseBtn();
+    cyclePosition = 0;
+    if (indicator) indicator.classList.add('visible');
+    if (journeyBtn) journeyBtn.classList.add('hidden');
+    if (exitJourneyBtn) exitJourneyBtn.classList.add('visible');
+    if (pauseJourneyBtn) pauseJourneyBtn.classList.add('visible');
+    const prompt = document.getElementById('touch-prompt');
+    if (prompt) prompt.remove();
+    closePanel();
+    showNext();
+  }
+
+  function stopJourney() {
+    journeyActive = false;
+    if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+    if (indicator) indicator.classList.remove('visible');
+    if (journeyBtn) journeyBtn.classList.remove('hidden');
+    if (exitJourneyBtn) exitJourneyBtn.classList.remove('visible');
+    if (pauseJourneyBtn) pauseJourneyBtn.classList.remove('visible');
+    journeyPaused = false;
+    prayerBar.classList.remove('visible');
+    spotlight.classList.remove('visible');
+    spotlight.style.background = '';
+    curtain.classList.remove('visible');
+    closePanel();
+    // Reset map zoom
+    d3.select(mapSvg).select('g').attr('transform', DEFAULT_TRANSFORM);
+    // Reset markers to normal
+    d3.selectAll('.marker-group').interrupt().style('opacity', null);
+    d3.selectAll('.arc-line').interrupt().style('opacity', null);
+    d3.selectAll('.marker-halo').interrupt().attr('r', 32);
+    d3.selectAll('.marker-dot').interrupt().attr('r', function() {
+      return d3.select(this.parentNode).selectAll('text').empty() ? 11 : 14;
+    });
+    if (focusRingGroup) { focusRingGroup.remove(); focusRingGroup = null; }
+    resetIdleTimer();
+  }
+
+  function showNext() {
+    if (!journeyActive) return;
+    if (cyclePosition >= journeySequence.length) cyclePosition = 0;
+
+    const locId = journeySequence[cyclePosition];
+    const loc = locations.find(l => l.id === locId);
+    cyclePosition++;
+
+    // Skip locations not found in data
+    if (!loc) { cycleTimer = setTimeout(showNext, 50); return; }
+
+    const pos = projection([loc.lng, loc.lat]);
+    if (!pos) { cycleTimer = setTimeout(showNext, 50); return; }
+
+    // ── Phase 1: Fade curtain in (hide map) ──
+    closePanel();
+    prayerBar.classList.remove('visible');
+    spotlight.classList.remove('visible');
+    if (focusRingGroup) { focusRingGroup.remove(); focusRingGroup = null; }
+    curtain.classList.add('visible');
+    setTimeout(playSwoosh, 200);
+
+    cycleTimer = setTimeout(() => {
+      if (!journeyActive) return;
+
+      // ── Phase 2: While hidden, set zoom transform instantly ──
+      const tx = W / 2 - pos[0] * ZOOM_SCALE;
+      const ty = H / 2 - pos[1] * ZOOM_SCALE;
+      d3.select(mapSvg).select('g').attr('transform',
+        `translate(${tx}, ${ty}) scale(${ZOOM_SCALE})`);
+
+      // Dim all markers, highlight active
+      d3.selectAll('.marker-group').style('opacity', 0.15);
+      d3.selectAll('.arc-line').style('opacity', 0.03);
+
+      d3.selectAll('.marker-group[data-loc-ids]').each(function() {
+        const el = d3.select(this);
+        const ids = el.attr('data-loc-ids').split(',');
+        if (ids.includes(loc.id)) {
+          el.style('opacity', 1);
+          el.select('.marker-halo').attr('r', 50);
+          el.select('.marker-dot').attr('r', 16);
+
+          // Focus rings — append inside mapGroup so they zoom with the map
+          const transform = el.attr('transform');
+          focusRingGroup = d3.select(mapSvg).select('g').append('g')
+            .attr('class', 'prayer-focus-rings')
+            .attr('transform', transform);
+          for (let i = 0; i < 3; i++) {
+            focusRingGroup.append('circle')
+              .attr('cx', 0).attr('cy', 0).attr('r', 30).attr('fill', 'none')
+              .attr('stroke', '#f0c040').attr('stroke-width', 2)
+              .attr('opacity', 0.6)
+              .style('animation', `focus-ring-pulse 3s ease-out ${i * 1}s infinite`);
+          }
+        }
+      });
+
+      // Prayer bar content
+      prayerName.textContent = loc.name;
+      prayerCountry.textContent = loc.country;
+      prayerPrompt.textContent = loc.prayerPrompt || loc.description || '';
+
+      const allImages = loc.images || (loc.image ? [loc.image] : []);
+      const barImg = loc.thumbnail || allImages[0];
+      if (barImg) {
+        prayerPhoto.innerHTML = `<div class="blur-bg" style="background-image:url('${barImg}')"></div><img src="${barImg}" alt="${loc.name}">`;
+      } else {
+        const svgIcon = loc.type === 'mission' || loc.type === 'hq'
+          ? '<svg viewBox="0 0 24 24" fill="currentColor" style="color:rgba(200,220,255,0.4)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="currentColor" style="color:rgba(200,220,255,0.4)"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>';
+        prayerPhoto.innerHTML = svgIcon;
+      }
+
+      // ── Phase 3: Reveal — fade curtain out ──
+      curtain.classList.remove('visible');
+
+      // Show prayer bar, info panel, and spotlight after curtain starts fading
+      setTimeout(() => {
+        if (!journeyActive) return;
+        prayerBar.classList.add('visible');
+
+        // Open info panel to the RIGHT of the centered dot during journey
+        const journeyScreenPos = { x: W / 2, y: H / 2 };
+        openPanel(loc, journeyScreenPos, true);
+
+        // Spotlight vignette (centered since we zoomed to center)
+        spotlight.style.background = `radial-gradient(circle 500px at 50% 50%, transparent 0%, rgba(2, 8, 20, 0.55) 100%)`;
+        spotlight.classList.add('visible');
+
+        // Progress bar
+        progressFill.style.transition = 'none';
+        progressFill.style.width = '0%';
+        requestAnimationFrame(() => {
+          progressFill.style.transition = `width ${DWELL_TIME}ms linear`;
+          progressFill.style.width = '100%';
+        });
+      }, 200);
+
+      // ── Phase 4: Dwell, then move to next ──
+      cycleTimer = setTimeout(() => {
+        if (journeyActive) showNext();
+      }, DWELL_TIME + CURTAIN_MS);
+    }, CURTAIN_MS);
+  }
+
+  function resetIdleTimer() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(startJourney, IDLE_TIMEOUT);
+  }
+
+  function onInteraction(e) {
+    // Don't reset idle timer if interacting with journey controls
+    if (e.target.closest('#exit-journey-btn') || e.target.closest('#prayer-journey-btn') || e.target.closest('#pause-journey-btn')) return;
+    if (!journeyActive) resetIdleTimer();
+  }
+
+  ['click', 'touchstart', 'touchmove', 'pointerdown'].forEach(evt => {
+    document.addEventListener(evt, onInteraction, { passive: true });
+  });
+
+  // Prayer Journey button — starts journey
+  if (journeyBtn) {
+    journeyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startJourney();
+    });
+    journeyBtn.addEventListener('touchend', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  // Exit Journey button — stops journey
+  if (exitJourneyBtn) {
+    exitJourneyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      stopJourney();
+    });
+    exitJourneyBtn.addEventListener('touchend', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  // Pause/Play Journey button
+  if (pauseJourneyBtn) {
+    pauseJourneyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePause();
+    });
+    pauseJourneyBtn.addEventListener('touchend', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  resetIdleTimer();
+})();
+
+// ════════════════════════════════════════════════════
+// FEATURE: Multi-Touch Prayer Chain
+// ════════════════════════════════════════════════════
+(function initTouchChain() {
+  const chainSvg = document.getElementById('touch-chain-svg');
+  const chainLabel = document.getElementById('touch-chain-label');
+  const activeTouches = new Map(); // touchId -> {x, y}
+  let chainVisible = false;
+
+  function findNearestLocation(screenX, screenY) {
+    // Convert screen coords back to SVG coords to find nearest marker
+    let bestDist = Infinity, bestLoc = null;
+    locations.forEach(loc => {
+      const pos = projection([loc.lng, loc.lat]);
+      if (!pos) return;
+      const sp = getSVGScreenPos(pos[0], pos[1]);
+      const d = Math.hypot(sp.x - screenX, sp.y - screenY);
+      if (d < bestDist) { bestDist = d; bestLoc = { loc, screen: sp }; }
+    });
+    return bestLoc;
+  }
+
+  function updateChain() {
+    const points = Array.from(activeTouches.values());
+
+    if (points.length < 2) {
+      chainSvg.innerHTML = '';
+      if (chainVisible) {
+        chainLabel.classList.remove('visible');
+        chainVisible = false;
+      }
+      return;
+    }
+
+    if (!chainVisible) {
+      chainLabel.classList.add('visible');
+      chainVisible = true;
+    }
+
+    // Build SVG arcs between all pairs
+    let html = '';
+    const ns = 'http://www.w3.org/2000/svg';
+
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        const a = points[i], b = points[j];
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+        const dist = Math.hypot(b.x - a.x, b.y - a.y);
+        const curve = dist * 0.3;
+        // Curved arc path
+        const ctrl = { x: mx, y: my - curve };
+        html += `<path d="M${a.x},${a.y} Q${ctrl.x},${ctrl.y} ${b.x},${b.y}"
+          fill="none" stroke="url(#chain-grad)" stroke-width="2.5"
+          style="animation: chain-pulse 2s ease-in-out infinite; animation-delay: ${i * 0.3}s;
+                 filter: drop-shadow(0 0 8px rgba(240, 192, 64, 0.5));" />`;
+      }
+    }
+
+    // Glow dots at each touch point
+    points.forEach(p => {
+      html += `<circle cx="${p.x}" cy="${p.y}" r="12"
+        fill="none" stroke="#f0c040" stroke-width="2" opacity="0.6">
+        <animate attributeName="r" values="12;24;12" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/>
+      </circle>`;
+      html += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="#f0c040" opacity="0.8"/>`;
+    });
+
+    // Gradient definition
+    html = `<defs><linearGradient id="chain-grad">
+      <stop offset="0%" stop-color="#f0c040" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ffe080" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#f0c040" stop-opacity="0.8"/>
+    </linearGradient></defs>` + html;
+
+    chainSvg.innerHTML = html;
+
+    // Collective pulse — briefly brighten all markers
+    d3.selectAll('.marker-halo').each(function() {
+      d3.select(this).transition().duration(300)
+        .attr('r', function() { return parseFloat(d3.select(this).attr('r')) + 3; })
+        .transition().duration(600)
+        .attr('r', function() { return parseFloat(d3.select(this).attr('r')) - 3; });
+    });
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    for (const touch of e.changedTouches) {
+      const nearest = findNearestLocation(touch.clientX, touch.clientY);
+      if (nearest) {
+        activeTouches.set(touch.identifier, { x: nearest.screen.x, y: nearest.screen.y, loc: nearest.loc });
+      }
+    }
+    updateChain();
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    for (const touch of e.changedTouches) {
+      if (activeTouches.has(touch.identifier)) {
+        const nearest = findNearestLocation(touch.clientX, touch.clientY);
+        if (nearest) {
+          activeTouches.set(touch.identifier, { x: nearest.screen.x, y: nearest.screen.y, loc: nearest.loc });
+        }
+      }
+    }
+    updateChain();
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    for (const touch of e.changedTouches) {
+      activeTouches.delete(touch.identifier);
+    }
+    updateChain();
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', (e) => {
+    for (const touch of e.changedTouches) {
+      activeTouches.delete(touch.identifier);
+    }
+    updateChain();
+  }, { passive: true });
+})();
+</script>
+</div>
+<script>
+(function fitScene() {
+  const scene = document.getElementById("scene");
+  function resize() {
+    const sx = window.innerWidth / 2400;
+    const sy = window.innerHeight / 1350;
+    const s = Math.min(sx, sy);
+    scene.style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+  resize();
+  window.addEventListener("resize", resize);
+})();
+
+</script>
+</body>
+</html>

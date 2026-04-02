@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Map — Admin</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --bg: #0f1320; --card: #181d2e; --border: #2a3050; --accent: #f0c040; --blue: #40b0f0; --text: #e0e4f0; --muted: #7888a8; --danger: #e04050; --success: #40c060; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Layout */
+  .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header h1 span { color: var(--accent); }
+  .header-actions { display: flex; gap: 10px; }
+
+  .container { display: flex; height: calc(100vh - 57px); }
+  .sidebar { width: 380px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .main { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* Sidebar */
+  .search-bar { padding: 12px; border-bottom: 1px solid var(--border); }
+  .search-bar input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+  .search-bar input:focus { border-color: var(--accent); }
+  .filter-row { padding: 8px 12px; display: flex; gap: 6px; border-bottom: 1px solid var(--border); }
+  .filter-btn { padding: 5px 12px; border-radius: 14px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+  .location-list { flex: 1; overflow-y: auto; }
+  .loc-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.15s; }
+  .loc-item:hover { background: rgba(255,255,255,0.03); }
+  .loc-item.active { background: rgba(240,192,64,0.08); border-left: 3px solid var(--accent); }
+  .loc-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .loc-dot.mission { background: var(--blue); }
+  .loc-dot.school { background: var(--accent); }
+  .loc-thumb { width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0; object-fit: cover; border: 1px solid var(--border); }
+  .loc-no-photo { width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0; background: rgba(255,255,255,0.04); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+  .loc-info { flex: 1; min-width: 0; }
+  .loc-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .loc-country { font-size: 12px; color: var(--muted); }
+  .loc-count { font-size: 11px; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+
+  /* Buttons */
+  .btn { padding: 8px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #f5d060; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #f05060; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* Form */
+  .form-section { margin-bottom: 24px; }
+  .form-section h3 { font-size: 14px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .form-group input, .form-group select, .form-group textarea { padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { min-height: 80px; resize: vertical; }
+
+  /* Stats editor */
+  .stats-list { display: flex; flex-direction: column; gap: 8px; }
+  .stat-row { display: flex; gap: 8px; align-items: center; }
+  .stat-row input { flex: 1; }
+  .stat-row .btn-remove { width: 32px; height: 32px; border-radius: 50%; background: rgba(224,64,80,0.15); border: none; color: var(--danger); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+  /* Image upload */
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .photo-thumb { position: relative; width: 100px; height: 100px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb { cursor: grab; }
+  .photo-thumb.dragging { opacity: 0.4; }
+  .photo-thumb.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .photo-thumb .photo-delete { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; background: rgba(224,64,80,0.9); border: none; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+  .photo-thumb:hover .photo-delete { opacity: 1; }
+  .photo-thumb .photo-badge { position: absolute; top: 4px; left: 4px; background: rgba(240,192,64,0.9); color: #000; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 8px; pointer-events: none; }
+  .upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+  .upload-area:hover { border-color: var(--accent); background: rgba(240,192,64,0.03); }
+  .upload-area .upload-text { color: var(--muted); font-size: 13px; }
+  .upload-area input { display: none; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 1000; transform: translateY(80px); opacity: 0; transition: all 0.3s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--success); color: #fff; }
+  .toast.error { background: var(--danger); color: #fff; }
+
+  /* Empty / welcome */
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 12px; }
+  .empty-state svg { width: 64px; height: 64px; opacity: 0.3; }
+
+  /* Confirm dialog */
+  .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; display: none; align-items: center; justify-content: center; }
+  .dialog-overlay.open { display: flex; }
+  .dialog { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; }
+  .dialog h3 { margin-bottom: 12px; }
+  .dialog p { color: var(--muted); margin-bottom: 20px; font-size: 14px; }
+  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>World Map</span> — Location Manager</h1>
+  <div class="header-actions">
+    <a href="/" class="btn btn-outline" target="_blank">View Map</a>
+    <button class="btn btn-primary" onclick="startAdd()">+ Add Location</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="search-bar"><input type="text" id="search" placeholder="Search locations..." oninput="renderList()"></div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" data-filter="mission" onclick="setFilter('mission',this)">Missions</button>
+      <button class="filter-btn" data-filter="school" onclick="setFilter('school',this)">Schools</button>
+      <button class="filter-btn" data-filter="church" onclick="setFilter('church',this)">Churches</button>
+    </div>
+    <div class="loc-count" id="loc-count"></div>
+    <div class="location-list" id="location-list"></div>
+  </div>
+  <div class="main" id="main">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      <p>Select a location to edit, or add a new one</p>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-overlay" id="confirmDialog">
+  <div class="dialog">
+    <h3>Delete Location?</h3>
+    <p id="confirmMsg">Are you sure you want to delete this location? This cannot be undone.</p>
+    <div class="dialog-actions">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let locations = [];
+let activeFilter = 'all';
+let selectedId = null;
+let isAdding = false;
+
+// ── Load data ───────────────────────────────────
+async function loadLocations() {
+  const res = await fetch('/api/locations?t=' + Date.now());
+  locations = await res.json();
+  renderList();
+}
+
+// Use fresh data returned directly from a write endpoint (bypasses stale CDN reads)
+function applyResponseData(data) {
+  if (data && data._allLocations) {
+    locations = data._allLocations;
+    renderList();
+    return true;
+  }
+  return false;
+}
+
+function renderList() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = locations.filter(l => {
+    if (activeFilter !== 'all' && l.type !== activeFilter) return false;
+    if (q && !l.name.toLowerCase().includes(q) && !l.country.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('loc-count').textContent = `${filtered.length} of ${locations.length} locations`;
+  const list = document.getElementById('location-list');
+  list.innerHTML = filtered.map(l => `
+    <div class="loc-item ${l.id === selectedId ? 'active' : ''}" onclick="selectLocation('${l.id}')">
+      ${(l.images?.[0] || l.image) ? `<img class="loc-thumb" src="${esc(l.images?.[0] || l.image)}" alt="">` : `<div class="loc-no-photo">&#128247;</div>`}
+      <div class="loc-info">
+        <div class="loc-name">${esc(l.name)}</div>
+        <div class="loc-country">${esc(l.country)} &middot; ${l.type}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function selectLocation(id) {
+  selectedId = id;
+  isAdding = false;
+  const loc = locations.find(l => l.id === id);
+  if (loc) renderForm(loc);
+  renderList();
+}
+
+function startAdd() {
+  isAdding = true;
+  selectedId = null;
+  renderForm({ id: '', type: 'mission', name: '', country: '', lat: 0, lng: 0, description: '', stats: {}, image: null, images: [] });
+  renderList();
+}
+
+// ── Form rendering ──────────────────────────────
+function renderForm(loc) {
+  const statsEntries = Object.entries(loc.stats || {});
+  const images = loc.images || (loc.image ? [loc.image] : []);
+
+  document.getElementById('main').innerHTML = `
+    <form id="locForm" onsubmit="saveLocation(event)">
+      <div class="form-section">
+        <h3>${isAdding ? 'Add New Location' : 'Edit Location'}</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ID (unique slug)</label>
+            <input name="id" value="${esc(loc.id)}" required ${isAdding ? '' : 'readonly'} placeholder="e.g. kenya-mission">
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            ${loc.type === 'headquarters' ? `<input name="type" value="headquarters" readonly style="color:var(--accent);font-weight:600">` : `<select name="type">
+              <option value="mission" ${loc.type === 'mission' ? 'selected' : ''}>Mission</option>
+              <option value="school" ${loc.type === 'school' ? 'selected' : ''}>School / Seminary</option>
+              <option value="church" ${loc.type === 'church' ? 'selected' : ''}>Church</option>
+            </select>`}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name</label>
+            <input name="name" value="${esc(loc.name)}" required placeholder="e.g. Kenya Mission">
+          </div>
+          <div class="form-group">
+            <label>Country</label>
+            <input name="country" value="${esc(loc.country)}" required placeholder="e.g. Kenya">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Latitude</label>
+            <input name="lat" type="number" step="any" value="${loc.lat}" required>
+          </div>
+          <div class="form-group">
+            <label>Longitude</label>
+            <input name="lng" type="number" step="any" value="${loc.lng}" required>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <button type="button" class="btn btn-outline btn-sm" onclick="geocodeLookup()">📍 Lookup coordinates from name/country</button>
+          <span id="geocodeStatus" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+        </div>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea name="description" placeholder="Describe this location...">${esc(loc.description)}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Prayer Bar Thumbnail <span style="font-size:12px;color:var(--muted);font-weight:400">(square logo/icon for journey bar)</span></h3>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          ${loc.thumbnail ? `<div class="photo-thumb" style="width:80px;height:80px"><img src="${esc(loc.thumbnail)}" alt=""><button type="button" class="photo-delete" style="opacity:1" onclick="removeThumbnail('${esc(loc.id)}')" title="Remove thumbnail">&times;</button></div>` : ''}
+          <div class="upload-area" onclick="document.getElementById('thumbInput').click()" style="flex:1;padding:14px">
+            <div class="upload-text">${loc.thumbnail ? 'Replace thumbnail' : 'Upload square logo/icon'}</div>
+            <input type="file" id="thumbInput" accept="image/*" onchange="handleThumbnailSelect(this)">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Photos ${images.length > 0 ? `<span style="font-size:12px;color:var(--muted);font-weight:400">(${images.length})</span>` : ''}</h3>
+        ${images.length > 0 ? `<div class="photo-grid" id="photoGrid">${images.map((url, i) => `
+          <div class="photo-thumb" draggable="true" data-idx="${i}" data-loc-id="${esc(loc.id)}">
+            <img src="${esc(url)}" alt="" draggable="false">
+            ${i === 0 ? '<span class="photo-badge">Main</span>' : ''}
+            <button type="button" class="photo-delete" onclick="deleteImage('${esc(loc.id)}','${esc(url)}')" title="Remove photo">&times;</button>
+          </div>
+        `).join('')}</div>` : ''}
+        <div class="upload-area" onclick="document.getElementById('imageInput').click()" id="uploadArea">
+          <div class="upload-text">${images.length > 0 ? '+ Add another photo' : 'Click to upload a photo'}</div>
+          <input type="file" id="imageInput" accept="image/*" onchange="handleImageSelect(this)">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Stats <button type="button" class="btn btn-outline btn-sm" onclick="addStat()" style="margin-left:12px">+ Add Stat</button></h3>
+        <div class="stats-list" id="statsList">
+          ${statsEntries.map(([k, v], i) => `
+            <div class="stat-row">
+              <input placeholder="Label" value="${esc(k)}" data-stat-key="${i}">
+              <input placeholder="Value" value="${esc(v)}" data-stat-val="${i}">
+              <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">${isAdding ? 'Add Location' : 'Save Changes'}</button>
+        ${!isAdding ? `<button type="button" class="btn btn-danger" onclick="confirmDelete('${esc(loc.id)}')">Delete</button>` : ''}
+        <button type="button" class="btn btn-outline" onclick="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  `;
+}
+
+// ── Save ─────────────────────────────────────────
+async function saveLocation(e) {
+  e.preventDefault();
+  const form = document.getElementById('locForm');
+  const fd = new FormData(form);
+
+  // Collect stats
+  const stats = {};
+  document.querySelectorAll('.stat-row').forEach(row => {
+    const key = row.querySelector('[data-stat-key]')?.value?.trim() || row.querySelector('input:first-child')?.value?.trim();
+    const val = row.querySelector('[data-stat-val]')?.value?.trim() || row.querySelector('input:nth-child(2)')?.value?.trim();
+    if (key && val) stats[key] = val;
+  });
+
+  const loc = {
+    id: fd.get('id').trim(),
+    type: fd.get('type'),
+    name: fd.get('name').trim(),
+    country: fd.get('country').trim(),
+    lat: parseFloat(fd.get('lat')),
+    lng: parseFloat(fd.get('lng')),
+    description: fd.get('description').trim(),
+    stats,
+    image: locations.find(l => l.id === fd.get('id'))?.image || null,
+    images: locations.find(l => l.id === fd.get('id'))?.images || []
+  };
+
+  try {
+    let res;
+    if (isAdding) {
+      res = await fetch('/api/locations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) });
+    } else {
+      res = await fetch('/api/locations/' + loc.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) });
+    }
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
+
+    const data = await res.json();
+    if (!applyResponseData(data)) await loadLocations();
+    selectedId = loc.id;
+    isAdding = false;
+    selectLocation(loc.id);
+    toast('Location saved!', 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Compress image client-side (Vercel 4.5MB body limit) ──
+function compressImage(file, maxSize = 3800000, maxDim = 2400) {
+  return new Promise((resolve) => {
+    if (file.size <= maxSize) { resolve(file); return; }
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.85;
+      const tryCompress = () => {
+        canvas.toBlob((blob) => {
+          if (blob.size > maxSize && quality > 0.3) {
+            quality -= 0.1;
+            tryCompress();
+          } else {
+            resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+          }
+        }, 'image/jpeg', quality);
+      };
+      tryCompress();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ── Image upload ─────────────────────────────────
+async function handleImageSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const id = isAdding ? document.querySelector('[name=id]').value.trim() : selectedId;
+  if (!id) { toast('Save the location first before uploading a photo', 'error'); return; }
+  if (isAdding) { toast('Save the location first, then upload a photo', 'error'); return; }
+
+  try {
+    toast('Compressing & uploading...', 'success');
+    const compressed = await compressImage(file);
+    const buf = await compressed.arrayBuffer();
+    const res = await fetch('/api/upload/' + id, {
+      method: 'POST',
+      body: buf,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-File-Type': compressed.type || 'image/jpeg',
+        'X-File-Name': compressed.name || 'image.jpg',
+      }
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Upload failed'); }
+    const data = await res.json();
+    if (!applyResponseData(data)) await loadLocations();
+    selectLocation(id);
+    toast('Photo uploaded!', 'success');
+  } catch (err) {
+    toast('Upload error: ' + err.message, 'error');
+  }
+}
+
+// ── Delete single image ─────────────────────────
+async function deleteImage(locId, imageUrl) {
+  try {
+    const res = await fetch('/api/locations/' + locId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl })
+    });
+    if (!res.ok) throw new Error('Delete failed');
+    const data = await res.json();
+    if (!applyResponseData(data)) await loadLocations();
+    selectLocation(locId);
+    toast('Photo removed', 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Thumbnail upload ─────────────────────────────
+async function handleThumbnailSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const id = isAdding ? document.querySelector('[name=id]').value.trim() : selectedId;
+  if (!id || isAdding) { toast('Save the location first', 'error'); return; }
+  try {
+    toast('Compressing & uploading...', 'success');
+    const compressed = await compressImage(file, 2000000, 800);
+    const buf = await compressed.arrayBuffer();
+    // Upload as thumbnail — X-Upload-Type header tells API to set thumbnail only
+    const res = await fetch('/api/upload/' + id, {
+      method: 'POST',
+      body: buf,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-File-Type': compressed.type || 'image/jpeg',
+        'X-File-Name': compressed.name || 'thumb.jpg',
+        'X-Upload-Type': 'thumbnail',
+      }
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Upload failed'); }
+    const data = await res.json();
+    if (!applyResponseData(data)) await loadLocations();
+    selectLocation(id);
+    toast('Thumbnail set!', 'success');
+  } catch (err) {
+    toast('Upload error: ' + err.message, 'error');
+  }
+}
+
+async function removeThumbnail(locId) {
+  try {
+    const res = await fetch('/api/locations/' + locId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ thumbnail: null })
+    });
+    const data = await res.json();
+    if (!applyResponseData(data)) await loadLocations();
+    selectLocation(locId);
+    toast('Thumbnail removed', 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Drag & drop reorder ─────────────────────────
+let dragFromIdx = null;
+
+document.addEventListener('dragstart', function(e) {
+  const thumb = e.target.closest('.photo-thumb[draggable]');
+  if (!thumb) return;
+  dragFromIdx = parseInt(thumb.dataset.idx);
+  thumb.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+});
+
+document.addEventListener('dragover', function(e) {
+  const thumb = e.target.closest('.photo-thumb[draggable]');
+  if (!thumb) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.photo-thumb').forEach(t => t.classList.remove('drag-over'));
+  thumb.classList.add('drag-over');
+});
+
+document.addEventListener('dragleave', function(e) {
+  const thumb = e.target.closest('.photo-thumb[draggable]');
+  if (thumb) thumb.classList.remove('drag-over');
+});
+
+document.addEventListener('dragend', function(e) {
+  document.querySelectorAll('.photo-thumb').forEach(t => {
+    t.classList.remove('dragging', 'drag-over');
+  });
+});
+
+document.addEventListener('drop', async function(e) {
+  const thumb = e.target.closest('.photo-thumb[draggable]');
+  if (!thumb || dragFromIdx === null) return;
+  e.preventDefault();
+  const toIdx = parseInt(thumb.dataset.idx);
+  const locId = thumb.dataset.locId;
+  if (dragFromIdx === toIdx) { dragFromIdx = null; return; }
+
+  const loc = locations.find(l => l.id === locId);
+  if (!loc) { dragFromIdx = null; return; }
+  const source = loc.images || (loc.image ? [loc.image] : []);
+  const imgs = [...source];
+  const [moved] = imgs.splice(dragFromIdx, 1);
+  imgs.splice(toIdx, 0, moved);
+
+  // Update local data immediately
+  loc.images = imgs;
+  loc.image = imgs[0] || null;
+  renderForm(loc);
+  renderList();
+
+  dragFromIdx = null;
+
+  try {
+    const res = await fetch('/api/locations/' + locId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: imgs, image: imgs[0] || null })
+    });
+    if (!res.ok) throw new Error('Reorder failed');
+    const rdata = await res.json();
+    if (rdata._allLocations) applyResponseData(rdata);
+    toast('Photos reordered', 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    await loadLocations();
+    selectLocation(locId);
+  }
+});
+
+// ── Delete ───────────────────────────────────────
+let deleteId = null;
+function confirmDelete(id) {
+  deleteId = id;
+  const loc = locations.find(l => l.id === id);
+  document.getElementById('confirmMsg').textContent = `Are you sure you want to delete "${loc?.name}"? This cannot be undone.`;
+  document.getElementById('confirmDialog').classList.add('open');
+  document.getElementById('confirmDeleteBtn').onclick = doDelete;
+}
+function closeConfirm() {
+  document.getElementById('confirmDialog').classList.remove('open');
+  deleteId = null;
+}
+async function doDelete() {
+  if (!deleteId) return;
+  try {
+    const res = await fetch('/api/locations/' + deleteId, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    closeConfirm();
+    selectedId = null;
+    await loadLocations();
+    document.getElementById('main').innerHTML = '<div class="empty-state"><p>Location deleted</p></div>';
+    toast('Location deleted', 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Helpers ──────────────────────────────────────
+function addStat() {
+  const list = document.getElementById('statsList');
+  const idx = list.children.length;
+  const row = document.createElement('div');
+  row.className = 'stat-row';
+  row.innerHTML = `
+    <input placeholder="Label" data-stat-key="${idx}">
+    <input placeholder="Value" data-stat-val="${idx}">
+    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+  `;
+  list.appendChild(row);
+}
+
+async function geocodeLookup() {
+  const name = document.querySelector('[name=name]')?.value?.trim() || '';
+  const country = document.querySelector('[name=country]')?.value?.trim() || '';
+  const query = name && country ? `${name}, ${country}` : country || name;
+  if (!query) { toast('Enter a name or country first', 'error'); return; }
+  const status = document.getElementById('geocodeStatus');
+  status.textContent = 'Looking up...';
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+      headers: { 'User-Agent': 'GlobalPrayerTable/1.0' }
+    });
+    const results = await res.json();
+    if (results.length === 0) { status.textContent = 'Not found — try a different name'; return; }
+    document.querySelector('[name=lat]').value = parseFloat(results[0].lat).toFixed(4);
+    document.querySelector('[name=lng]').value = parseFloat(results[0].lon).toFixed(4);
+    status.textContent = `Found: ${results[0].display_name.substring(0, 50)}`;
+    toast('Coordinates filled!', 'success');
+  } catch (err) {
+    status.textContent = 'Lookup failed';
+    toast('Geocode error: ' + err.message, 'error');
+  }
+}
+
+function cancelEdit() {
+  selectedId = null;
+  isAdding = false;
+  document.getElementById('main').innerHTML = '<div class="empty-state"><p>Select a location to edit, or add a new one</p></div>';
+  renderList();
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Init ─────────────────────────────────────────
+loadLocations();
+</script>
+</body>
+</html>

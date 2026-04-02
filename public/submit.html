@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Your Location — Church of God Global Communications</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --bg: #0f1320; --card: #181d2e; --border: #2a3050; --accent: #f0c040; --blue: #40b0f0; --text: #e0e4f0; --muted: #7888a8; --danger: #e04050; --success: #40c060; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 20px 24px; text-align: center; }
+  .header-brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
+  .header-brand img { height: 40px; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header h1 span { color: var(--accent); }
+  .header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .header .powered { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .page { max-width: 700px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  .form-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .form-section h3 { font-size: 15px; font-weight: 600; color: var(--accent); margin-bottom: 14px; }
+  .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .form-group { flex: 1; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px; outline: none; font-family: inherit;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group select option { background: var(--bg); }
+  .form-group .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .form-group .hint.found { color: var(--success); }
+
+  /* Location search dropdown */
+  .loc-results { position: absolute; z-index: 100; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 200px; overflow-y: auto; width: 100%; display: none; }
+  .loc-results.open { display: block; }
+  .loc-result { padding: 10px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .loc-result:last-child { border-bottom: none; }
+  .loc-result:hover { background: rgba(240,192,64,0.1); }
+  .loc-wrap { position: relative; }
+
+  /* Stats */
+  .stat-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .stat-row input { flex: 1; }
+  .stat-remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+  .add-stat-btn { background: transparent; border: 1px dashed var(--border); color: var(--muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; width: 100%; }
+  .add-stat-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Photos */
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .photo-thumb { position: relative; width: 100px; height: 75px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 22px; text-align: center; }
+  .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .upload-area:hover { border-color: var(--accent); background: rgba(240,192,64,0.04); }
+  .upload-area p { color: var(--muted); font-size: 14px; }
+  .upload-area .icon { margin-bottom: 6px; }
+  .upload-area .icon svg { width: 32px; height: 32px; stroke: var(--muted); fill: none; stroke-width: 1.5; }
+
+  .thumb-preview { width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 8px; }
+  .thumb-preview img { width: 100%; height: 100%; object-fit: contain; background: var(--bg); }
+
+  /* Buttons */
+  .btn { padding: 10px 24px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #f5d060; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .submit-row { text-align: center; margin-top: 20px; }
+  .submit-row .btn { padding: 14px 48px; font-size: 16px; }
+
+  /* Toast */
+  .toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 9999; opacity: 0; transform: translateY(-10px); transition: all 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: var(--success); color: #fff; }
+  .toast.error { background: var(--danger); color: #fff; }
+
+  /* Success screen */
+  .success-screen { text-align: center; padding: 60px 20px; }
+  .success-screen .check { font-size: 64px; margin-bottom: 16px; }
+  .success-screen h2 { font-size: 24px; margin-bottom: 8px; }
+  .success-screen p { color: var(--muted); font-size: 16px; }
+
+  /* Progress */
+  .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-top: 12px; overflow: hidden; display: none; }
+  .progress-bar .fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; width: 0; }
+  .progress-text { font-size: 12px; color: var(--muted); margin-top: 6px; text-align: center; display: none; }
+
+  @media (max-width: 600px) {
+    .form-row { flex-direction: column; gap: 8px; }
+    .page { padding: 16px 12px 80px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <img src="https://res.cloudinary.com/dwmnclsia/image/upload/v1773364246/world-map/hq-1773364246794.png" alt="Church of God">
+    <div>
+      <h1>Church of God <span>Global Communications</span></h1>
+    </div>
+  </div>
+  <p>Submit your mission, school, or church to the Global Prayer Table.</p>
+  <div class="powered">Powered by Global Communications</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="page" id="formPage">
+
+  <div class="form-section">
+    <h3>Basic Information</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Location Name *</label>
+        <input name="name" required placeholder="e.g. Kenya Mission">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Country *</label>
+        <input name="country" required placeholder="e.g. Kenya">
+      </div>
+      <div class="form-group">
+        <label>Type *</label>
+        <select name="type">
+          <option value="mission">Mission</option>
+          <option value="school">School / Seminary</option>
+          <option value="church">Church</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group loc-wrap">
+        <label>Location on Map *</label>
+        <input id="locationSearch" type="text" placeholder="Search for your city or address..." autocomplete="off">
+        <div class="loc-results" id="locResults"></div>
+        <div class="hint" id="coordHint">Type a city or address and select from the dropdown to place your pin on the map.</div>
+        <input name="lat" type="hidden">
+        <input name="lng" type="hidden">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" maxlength="500" placeholder="Tell us about this location..." oninput="updateCharCount()"></textarea>
+        <div class="hint"><span id="charCount">0</span> / 500 characters</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Stats</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Add key details about your location. Here are some common examples — edit or remove any that don't apply.</p>
+    <div id="statsContainer">
+      <div class="stat-row">
+        <input placeholder="Label" class="stat-key" value="Established">
+        <input placeholder="Value" class="stat-val" value="">
+        <button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button>
+      </div>
+      <div class="stat-row">
+        <input placeholder="Label" class="stat-key" value="Focus">
+        <input placeholder="Value (e.g. Church Planting, Education)" class="stat-val" value="">
+        <button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button>
+      </div>
+      <div class="stat-row">
+        <input placeholder="Label" class="stat-key" value="Members">
+        <input placeholder="Value (e.g. 1,200)" class="stat-val" value="">
+        <button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button>
+      </div>
+    </div>
+    <button type="button" class="add-stat-btn" onclick="addStatRow()">+ Add Stat</button>
+  </div>
+
+  <div class="form-section">
+    <h3>Photos</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Upload photos of your location. The first photo will be the main image shown on the map.</p>
+    <div class="photo-grid" id="photoGrid"></div>
+    <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+      <div class="icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></div>
+      <p>Click to add photos</p>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)">
+  </div>
+
+  <div class="form-section">
+    <h3>Prayer Bar Logo <span style="font-weight:400;color:var(--muted)">(optional)</span></h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">A square logo/icon shown in the prayer bar at the bottom of the map.</p>
+    <div id="thumbPreview"></div>
+    <div class="upload-area" onclick="document.getElementById('thumbInput').click()">
+      <div class="icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+      <p>Click to upload a square logo</p>
+    </div>
+    <input type="file" id="thumbInput" accept="image/*" style="display:none" onchange="handleThumb(this)">
+  </div>
+
+  <div class="submit-row">
+    <button class="btn btn-primary" id="submitBtn" onclick="submitLocation()">Submit Location</button>
+    <div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText"></div>
+  </div>
+
+</div>
+
+<div class="page success-screen" id="successPage" style="display:none">
+  <div class="check"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg></div>
+  <h2>Thank You!</h2>
+  <p>Your location has been submitted successfully.<br>It will appear on the world map shortly.</p>
+  <br><br>
+  <button class="btn btn-primary" onclick="resetForm()">Submit Another</button>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────
+let pendingPhotos = [];   // { file, previewUrl }
+let pendingThumb = null;  // { file, previewUrl }
+
+// ── Toast ──────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ── Char count ─────────────────────────────────
+function updateCharCount() {
+  const ta = document.querySelector('[name=description]');
+  document.getElementById('charCount').textContent = ta.value.length;
+}
+
+// ── Stats ──────────────────────────────────────
+function addStatRow() {
+  const row = document.createElement('div');
+  row.className = 'stat-row';
+  row.innerHTML = `
+    <input placeholder="Label (e.g. Focus)" class="stat-key">
+    <input placeholder="Value (e.g. Church Planting)" class="stat-val">
+    <button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button>
+  `;
+  document.getElementById('statsContainer').appendChild(row);
+}
+
+// ── Photo handling ─────────────────────────────
+function handlePhotos(input) {
+  for (const file of input.files) {
+    const url = URL.createObjectURL(file);
+    pendingPhotos.push({ file, previewUrl: url });
+  }
+  input.value = '';
+  renderPhotos();
+}
+
+function renderPhotos() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = pendingPhotos.map((p, i) => `
+    <div class="photo-thumb">
+      <img src="${p.previewUrl}">
+      <button class="remove-btn" onclick="removePhoto(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function removePhoto(i) {
+  URL.revokeObjectURL(pendingPhotos[i].previewUrl);
+  pendingPhotos.splice(i, 1);
+  renderPhotos();
+}
+
+// ── Thumbnail handling ─────────────────────────
+function handleThumb(input) {
+  if (!input.files[0]) return;
+  if (pendingThumb) URL.revokeObjectURL(pendingThumb.previewUrl);
+  const file = input.files[0];
+  pendingThumb = { file, previewUrl: URL.createObjectURL(file) };
+  input.value = '';
+  document.getElementById('thumbPreview').innerHTML = `
+    <div class="thumb-preview"><img src="${pendingThumb.previewUrl}"></div>
+  `;
+}
+
+// ── Compress ───────────────────────────────────
+function compressImage(file, maxSize = 3800000, maxDim = 2400) {
+  return new Promise((resolve) => {
+    if (file.size <= maxSize) { resolve(file); return; }
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio); h = Math.round(h * ratio);
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.85;
+      const tryCompress = () => {
+        canvas.toBlob((blob) => {
+          if (blob.size > maxSize && quality > 0.3) { quality -= 0.1; tryCompress(); }
+          else { resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })); }
+        }, 'image/jpeg', quality);
+      };
+      tryCompress();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ── Upload a single file ───────────────────────
+async function uploadFile(id, file, type) {
+  const compressed = await compressImage(file, type === 'thumbnail' ? 2000000 : 3800000, type === 'thumbnail' ? 800 : 2400);
+  const buf = await compressed.arrayBuffer();
+  const headers = {
+    'Content-Type': 'application/octet-stream',
+    'X-File-Type': compressed.type || 'image/jpeg',
+    'X-File-Name': compressed.name || 'image.jpg',
+  };
+  if (type === 'thumbnail') headers['X-Upload-Type'] = 'thumbnail';
+  const res = await fetch('/api/upload/' + id, { method: 'POST', body: buf, headers });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Upload failed'); }
+  return res.json();
+}
+
+// ── Generate slug ──────────────────────────────
+function makeSlug(name) {
+  return name.toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50);
+}
+
+// ── Progress ───────────────────────────────────
+function showProgress(pct, msg) {
+  const bar = document.getElementById('progressBar');
+  const fill = document.getElementById('progressFill');
+  const text = document.getElementById('progressText');
+  bar.style.display = 'block';
+  text.style.display = 'block';
+  fill.style.width = pct + '%';
+  text.textContent = msg;
+}
+
+// ── Submit ─────────────────────────────────────
+async function submitLocation() {
+  const name = document.querySelector('[name=name]').value.trim();
+  const country = document.querySelector('[name=country]').value.trim();
+  const type = document.querySelector('[name=type]').value;
+  const lat = parseFloat(document.querySelector('[name=lat]').value);
+  const lng = parseFloat(document.querySelector('[name=lng]').value);
+  const description = document.querySelector('[name=description]').value.trim();
+
+  if (!name || !country) {
+    toast('Please fill in all required fields', 'error');
+    return;
+  }
+  if (isNaN(lat) || isNaN(lng)) {
+    toast('Please search and select a location on the map', 'error');
+    return;
+  }
+
+  const stats = {};
+  document.querySelectorAll('.stat-row').forEach(row => {
+    const k = row.querySelector('.stat-key').value.trim();
+    const v = row.querySelector('.stat-val').value.trim();
+    if (k && v) stats[k] = v;
+  });
+
+  const id = makeSlug(name);
+  if (!id) { toast('Please enter a valid name', 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const totalSteps = 1 + pendingPhotos.length + (pendingThumb ? 1 : 0);
+  let step = 0;
+
+  try {
+    // Step 1: Create the location
+    showProgress(0, 'Creating location...');
+    const res = await fetch('/api/locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name, country, type, lat, lng, description, stats, images: [], image: null, thumbnail: null })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create location');
+    }
+    step++;
+    showProgress(Math.round(step / totalSteps * 100), 'Location created!');
+
+    // Step 2: Upload photos sequentially
+    for (let i = 0; i < pendingPhotos.length; i++) {
+      showProgress(Math.round(step / totalSteps * 100), `Uploading photo ${i + 1} of ${pendingPhotos.length}...`);
+      await uploadFile(id, pendingPhotos[i].file, 'photo');
+      step++;
+    }
+
+    // Step 3: Upload thumbnail
+    if (pendingThumb) {
+      showProgress(Math.round(step / totalSteps * 100), 'Uploading logo...');
+      await uploadFile(id, pendingThumb.file, 'thumbnail');
+      step++;
+    }
+
+    showProgress(100, 'Done!');
+
+    // Show success
+    document.getElementById('formPage').style.display = 'none';
+    document.getElementById('successPage').style.display = 'block';
+
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Submit Location';
+  }
+}
+
+// ── Location search (Nominatim) ───────────────
+let searchTimer = null;
+const locSearch = document.getElementById('locationSearch');
+const locResults = document.getElementById('locResults');
+const coordHint = document.getElementById('coordHint');
+
+locSearch.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = locSearch.value.trim();
+  if (q.length < 3) { locResults.classList.remove('open'); return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      const results = await res.json();
+      if (!results.length) {
+        locResults.innerHTML = '<div class="loc-result" style="color:var(--muted)">No results found</div>';
+      } else {
+        locResults.innerHTML = results.map(r =>
+          `<div class="loc-result" data-lat="${r.lat}" data-lng="${r.lon}">${r.display_name}</div>`
+        ).join('');
+      }
+      locResults.classList.add('open');
+    } catch { locResults.classList.remove('open'); }
+  }, 400);
+});
+
+locResults.addEventListener('click', (e) => {
+  const item = e.target.closest('.loc-result');
+  if (!item || !item.dataset.lat) return;
+  document.querySelector('[name=lat]').value = item.dataset.lat;
+  document.querySelector('[name=lng]').value = item.dataset.lng;
+  locSearch.value = item.textContent;
+  locResults.classList.remove('open');
+  coordHint.textContent = `Coordinates: ${parseFloat(item.dataset.lat).toFixed(4)}, ${parseFloat(item.dataset.lng).toFixed(4)}`;
+  coordHint.classList.add('found');
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.loc-wrap')) locResults.classList.remove('open');
+});
+
+// ── Reset ──────────────────────────────────────
+function resetForm() {
+  pendingPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
+  if (pendingThumb) URL.revokeObjectURL(pendingThumb.previewUrl);
+  pendingPhotos = [];
+  pendingThumb = null;
+
+  document.querySelectorAll('input:not([type=file]), textarea').forEach(el => el.value = '');
+  document.querySelector('[name=type]').value = 'mission';
+  document.getElementById('statsContainer').innerHTML = `
+    <div class="stat-row"><input placeholder="Label" class="stat-key" value="Established"><input placeholder="Value" class="stat-val" value=""><button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button></div>
+    <div class="stat-row"><input placeholder="Label" class="stat-key" value="Focus"><input placeholder="Value (e.g. Church Planting, Education)" class="stat-val" value=""><button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button></div>
+    <div class="stat-row"><input placeholder="Label" class="stat-key" value="Members"><input placeholder="Value (e.g. 1,200)" class="stat-val" value=""><button type="button" class="stat-remove" onclick="this.closest('.stat-row').remove()">×</button></div>
+  `;
+  document.getElementById('charCount').textContent = '0';
+  document.getElementById('locationSearch').value = '';
+  coordHint.textContent = 'Type a city or address and select from the dropdown to place your pin on the map.';
+  coordHint.classList.remove('found');
+  document.getElementById('photoGrid').innerHTML = '';
+  document.getElementById('thumbPreview').innerHTML = '';
+  document.getElementById('progressBar').style.display = 'none';
+  document.getElementById('progressText').style.display = 'none';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = 'Submit Location';
+
+  document.getElementById('successPage').style.display = 'none';
+  document.getElementById('formPage').style.display = 'block';
+}
+</script>
+</body>
+</html>

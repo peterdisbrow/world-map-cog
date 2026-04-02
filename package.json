@@ -1,0 +1,9 @@
+{
+  "name": "global-prayer-table",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@vercel/blob": "^0.27.0",
+    "cloudinary": "^2.9.0"
+  }
+}

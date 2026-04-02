@@ -1,0 +1,1089 @@
+[
+  {
+    "id": "kenya",
+    "type": "mission",
+    "name": "Kenya Mission",
+    "country": "Kenya",
+    "lat": -1.29,
+    "lng": 36.82,
+    "description": "Church planting, children's ministry, and community outreach. Home to Kibera Oasis of Hope, Kibera Kids Center, Hope For the Children, and Jabez Children's Home serving vulnerable communities in Nairobi and beyond.",
+    "stats": {
+      "region": "Eastern Africa",
+      "missionaries": "6+",
+      "programs": "Children & Church Planting"
+    },
+    "image": null,
+    "images": [],
+    "thumbnail": "https://res.cloudinary.com/dwmnclsia/image/upload/v1773363829/world-map/kenya-1773363829649.png"
+  },
+  {
+    "id": "nigeria",
+    "type": "mission",
+    "name": "Nigeria Mission",
+    "country": "Nigeria",
+    "lat": 6.52,
+    "lng": 3.38,
+    "description": "Church of God established in Nigeria since 1951 through Rex N. Green. Today the work includes church planting, leadership development, and coordinating Africa-wide projects.",
+    "stats": {
+      "established": "1951",
+      "role": "Africa Projects HQ",
+      "focus": "Church Planting"
+    },
+    "image": null
+  },
+  {
+    "id": "tanzania",
+    "type": "mission",
+    "name": "Tanzania Mission",
+    "country": "Tanzania",
+    "lat": -6.79,
+    "lng": 37.66,
+    "description": "Missionaries Stephen and Ashley Griffin serving in church development, community outreach, and leadership training across Tanzania.",
+    "stats": {
+      "region": "Eastern Africa",
+      "focus": "Church Development",
+      "missionaries": "Griffin Family"
+    },
+    "image": null
+  },
+  {
+    "id": "zambia",
+    "type": "mission",
+    "name": "Zambia Mission",
+    "country": "Zambia",
+    "lat": -15.39,
+    "lng": 28.32,
+    "description": "Multiple missionary families serving in church development, orphan care through Emma's Kids ministry, and community transformation across Zambia.",
+    "stats": {
+      "missionaries": "5+",
+      "programs": "Emma's Kids",
+      "focus": "Orphan Care & Church"
+    },
+    "image": null
+  },
+  {
+    "id": "liberia",
+    "type": "mission",
+    "name": "Liberia Mission",
+    "country": "Liberia",
+    "lat": 6.3,
+    "lng": -10.8,
+    "description": "Maxwell and Debbie Thompson serving in church planting and operating the Phebe Grey Memorial Orphanage, caring for vulnerable children in Liberia.",
+    "stats": {
+      "missionaries": "Thompson Family",
+      "program": "Phebe Grey Orphanage",
+      "focus": "Orphan Care"
+    },
+    "image": null
+  },
+  {
+    "id": "sierra-leone",
+    "type": "mission",
+    "name": "Sierra Leone Mission",
+    "country": "Sierra Leone",
+    "lat": 8.47,
+    "lng": -13.23,
+    "description": "William and Karen Sivels serving in church development and community ministry in Sierra Leone.",
+    "stats": {
+      "missionaries": "Sivels Family",
+      "region": "West Africa",
+      "focus": "Church Development"
+    },
+    "image": null
+  },
+  {
+    "id": "guinea-bissau",
+    "type": "mission",
+    "name": "Guinea-Bissau Mission",
+    "country": "Guinea-Bissau",
+    "lat": 11.86,
+    "lng": -15.6,
+    "description": "Lydia and Everaldo Nascimento pioneering church planting and ministry development in Guinea-Bissau, West Africa.",
+    "stats": {
+      "missionaries": "Nascimento Family",
+      "region": "West Africa",
+      "focus": "Pioneer Church Planting"
+    },
+    "image": null
+  },
+  {
+    "id": "uganda",
+    "type": "mission",
+    "name": "Uganda Mission",
+    "country": "Uganda",
+    "lat": 0.35,
+    "lng": 32.58,
+    "description": "Widows and orphans ministry including Grace Home Orphanage, Simone's Kids, and Catherine's Treasures programs caring for Uganda's most vulnerable.",
+    "stats": {
+      "programs": "4+",
+      "focus": "Widows & Orphans",
+      "ministries": "Grace Home & More"
+    },
+    "image": null
+  },
+  {
+    "id": "rwanda",
+    "type": "mission",
+    "name": "Rwanda Mission",
+    "country": "Rwanda",
+    "lat": -1.94,
+    "lng": 29.87,
+    "description": "Operating the Gatenga-Kigali Feeding Centers providing nutrition and community support in the capital city and surrounding areas.",
+    "stats": {
+      "program": "Feeding Centers",
+      "location": "Gatenga, Kigali",
+      "focus": "Nutrition & Community"
+    },
+    "image": null
+  },
+  {
+    "id": "ethiopia",
+    "type": "mission",
+    "name": "Ethiopia Mission",
+    "country": "Ethiopia",
+    "lat": 9.02,
+    "lng": 38.75,
+    "description": "Sidama Bible School and Feeding Center providing theological education alongside nutrition programs. Also supporting Ethiopia Primary Schools for children.",
+    "stats": {
+      "programs": "Bible School & Feeding",
+      "schools": "Primary Schools",
+      "focus": "Education & Nutrition"
+    },
+    "image": null
+  },
+  {
+    "id": "senegal",
+    "type": "mission",
+    "name": "Senegal Mission",
+    "country": "Senegal",
+    "lat": 14.69,
+    "lng": -17.44,
+    "description": "House of Life Children's Home providing care, education, and hope for orphaned and vulnerable children in Senegal.",
+    "stats": {
+      "program": "House of Life",
+      "focus": "Children's Home",
+      "region": "West Africa"
+    },
+    "image": null
+  },
+  {
+    "id": "angola",
+    "type": "mission",
+    "name": "Angola Mission",
+    "country": "Angola",
+    "lat": -8.84,
+    "lng": 13.23,
+    "description": "The very first Church of God mission field in Africa. Pearl and Edmond Stark arrived at Lobito Bay on May 11, 1938, establishing the foundation for all African ministry.",
+    "stats": {
+      "established": "1938",
+      "significance": "First African Mission",
+      "founders": "Stark Family"
+    },
+    "image": null
+  },
+  {
+    "id": "ghana-mission",
+    "type": "mission",
+    "name": "Ghana Mission",
+    "country": "Ghana",
+    "lat": 6.69,
+    "lng": -1.62,
+    "description": "Church planting, Bible Institute, and community development across Ghana. A key hub for West African ministry and leadership training.",
+    "stats": {
+      "program": "Bible Institute",
+      "city": "Kumasi",
+      "focus": "Training & Church Planting"
+    },
+    "image": null
+  },
+  {
+    "id": "south-africa-mission",
+    "type": "mission",
+    "name": "South Africa Mission",
+    "country": "South Africa",
+    "lat": -25.75,
+    "lng": 28.19,
+    "description": "Amalgamated with the Full Gospel Church on March 28, 1951. Now a major regional hub for Southern African ministry, education, and church development.",
+    "stats": {
+      "established": "1951",
+      "role": "Regional Hub",
+      "ministry": "Full Gospel Church"
+    },
+    "image": null
+  },
+  {
+    "id": "mexico",
+    "type": "mission",
+    "name": "Mexico Mission",
+    "country": "Mexico",
+    "lat": 25.67,
+    "lng": -100.31,
+    "description": "Multiple missionary families serving throughout Mexico including Lloyd and Joyce Heiney, David and Lily Beck. Focused on church development and community outreach.",
+    "stats": {
+      "missionaries": "3+ families",
+      "focus": "Church Development",
+      "region": "Latin America"
+    },
+    "image": null
+  },
+  {
+    "id": "guatemala",
+    "type": "mission",
+    "name": "Guatemala Mission",
+    "country": "Guatemala",
+    "lat": 14.63,
+    "lng": -90.51,
+    "description": "Frankie and Joyce Tyson, David and Vickie Byrd, and Josh and Jessica Hanson serving in church planting, feeding programs, and community development.",
+    "stats": {
+      "missionaries": "3+ families",
+      "focus": "Church Planting & Feeding",
+      "region": "Central America"
+    },
+    "image": null
+  },
+  {
+    "id": "honduras",
+    "type": "mission",
+    "name": "Honduras Mission",
+    "country": "Honduras",
+    "lat": 14.07,
+    "lng": -87.19,
+    "description": "Strong missionary presence with Gary and Suzy Loggins, Steven and Candace Day, Martin and Wendy Williams, and David and Jessica Hubbard serving in church development and community ministry.",
+    "stats": {
+      "missionaries": "4+ families",
+      "focus": "Church Development",
+      "region": "Central America"
+    },
+    "image": null
+  },
+  {
+    "id": "nicaragua",
+    "type": "mission",
+    "name": "Nicaragua Mission",
+    "country": "Nicaragua",
+    "lat": 12.11,
+    "lng": -86.24,
+    "description": "Shane and Kerri Estes serving in church planting and community outreach throughout Nicaragua.",
+    "stats": {
+      "missionaries": "Estes Family",
+      "focus": "Church Planting",
+      "region": "Central America"
+    },
+    "image": null
+  },
+  {
+    "id": "colombia",
+    "type": "mission",
+    "name": "Colombia Mission",
+    "country": "Colombia",
+    "lat": 4.71,
+    "lng": -74.07,
+    "description": "Rick and Dolores Carroll alongside Bobby and Tammy Owens serving in church development and community transformation in Colombia.",
+    "stats": {
+      "missionaries": "2 families",
+      "focus": "Church Development",
+      "region": "South America"
+    },
+    "image": null
+  },
+  {
+    "id": "ecuador",
+    "type": "mission",
+    "name": "Ecuador Mission",
+    "country": "Ecuador",
+    "lat": -0.18,
+    "lng": -78.47,
+    "description": "Multiple missionary families including Dan and Teresa Susong, Michael Mills, and Danny and Tina Byrd serving in church planting and community outreach.",
+    "stats": {
+      "missionaries": "4+ families",
+      "focus": "Church Planting",
+      "region": "South America"
+    },
+    "image": null
+  },
+  {
+    "id": "peru",
+    "type": "mission",
+    "name": "Peru Mission",
+    "country": "Peru",
+    "lat": -12.05,
+    "lng": -77.04,
+    "description": "Joe and Judy Mercer, Don Seeders, Ruben and Trisha Ferrell, and Mike and Sheila Eaton serving in pastoral training, children's programs, and mountain community outreach.",
+    "stats": {
+      "missionaries": "4+ families",
+      "focus": "Pastoral Training",
+      "region": "South America"
+    },
+    "image": null
+  },
+  {
+    "id": "brazil",
+    "type": "mission",
+    "name": "Brazil Mission",
+    "country": "Brazil",
+    "lat": -22.91,
+    "lng": -43.17,
+    "description": "John and Kathy Hayes serving in church development. Rebecca Jenkins operating orphanage ministry caring for vulnerable children in Brazil.",
+    "stats": {
+      "missionaries": "2+ families",
+      "programs": "Orphanage",
+      "focus": "Church & Orphan Care"
+    },
+    "image": null
+  },
+  {
+    "id": "haiti",
+    "type": "mission",
+    "name": "Haiti Mission",
+    "country": "Haiti",
+    "lat": 18.54,
+    "lng": -72.34,
+    "description": "Operating multiple orphanages including Little Angels of the Broken Wings, Destiny Village, and Dufaily Orphanage. Providing care and education for Haiti's most vulnerable children.",
+    "stats": {
+      "orphanages": "3+",
+      "focus": "Orphan Care & Education",
+      "region": "Caribbean"
+    },
+    "image": null
+  },
+  {
+    "id": "jamaica-mission",
+    "type": "mission",
+    "name": "Jamaica Mission",
+    "country": "Jamaica",
+    "lat": 18.11,
+    "lng": -77.3,
+    "description": "Harold and Judy Hanks serving across the Caribbean. Home to the Whittington Heritage Educational Fund and Yadel Orphanage ministries.",
+    "stats": {
+      "missionaries": "Hanks Family",
+      "programs": "Education Fund & Orphanage",
+      "region": "Caribbean"
+    },
+    "image": null
+  },
+  {
+    "id": "guyana",
+    "type": "mission",
+    "name": "Guyana Mission",
+    "country": "Guyana",
+    "lat": 6.8,
+    "lng": -58.16,
+    "description": "Bless The Children ministry operating the Tyler Carver Home, providing a safe and loving environment for orphaned and vulnerable children.",
+    "stats": {
+      "program": "Tyler Carver Home",
+      "ministry": "Bless The Children",
+      "focus": "Orphan Care"
+    },
+    "image": null
+  },
+  {
+    "id": "germany-mission",
+    "type": "mission",
+    "name": "Germany Mission",
+    "country": "Germany",
+    "lat": 51.17,
+    "lng": 10.45,
+    "description": "Tom and Claudia Rosson, Michelle Vallez, and Steffen and Lisette Schumacher serving in church revitalization and outreach in post-Christian Europe.",
+    "stats": {
+      "missionaries": "3+ families",
+      "focus": "Church Revitalization",
+      "region": "Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "italy",
+    "type": "mission",
+    "name": "Italy Mission",
+    "country": "Italy",
+    "lat": 41.9,
+    "lng": 12.5,
+    "description": "Don Chavis, Ben and Diane Bustamante, and Virginia Drennen serving in church planting and community ministry across Italy.",
+    "stats": {
+      "missionaries": "3+",
+      "focus": "Church Planting",
+      "region": "Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "uk",
+    "type": "mission",
+    "name": "United Kingdom Mission",
+    "country": "United Kingdom",
+    "lat": 55.95,
+    "lng": -3.19,
+    "description": "Gale Beach, Luke and Sarah Hollifield, and Rick and Jennifer Harris (Scotland) serving in church development across the UK.",
+    "stats": {
+      "missionaries": "3+ families",
+      "focus": "Church Development",
+      "includes": "Scotland"
+    },
+    "image": null
+  },
+  {
+    "id": "greece",
+    "type": "mission",
+    "name": "Greece Mission",
+    "country": "Greece",
+    "lat": 37.98,
+    "lng": 23.73,
+    "description": "Philip Henderson, Jamison and Kelli Creel serving in church planting and refugee ministry in Greece.",
+    "stats": {
+      "missionaries": "2+ families",
+      "focus": "Church Planting",
+      "region": "Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "romania",
+    "type": "mission",
+    "name": "Romania Mission",
+    "country": "Romania",
+    "lat": 44.43,
+    "lng": 26.1,
+    "description": "Michael and Mihaela Gravitt serving in church development and community outreach in Romania.",
+    "stats": {
+      "missionaries": "Gravitt Family",
+      "focus": "Church Development",
+      "region": "Eastern Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "bulgaria",
+    "type": "mission",
+    "name": "Bulgaria Mission",
+    "country": "Bulgaria",
+    "lat": 42.43,
+    "lng": 25.49,
+    "description": "Karina and Juan Ramirez serving in church planting and community ministry in Bulgaria.",
+    "stats": {
+      "missionaries": "Ramirez Family",
+      "focus": "Church Planting",
+      "region": "Eastern Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "ukraine",
+    "type": "mission",
+    "name": "Ukraine Mission",
+    "country": "Ukraine",
+    "lat": 50.45,
+    "lng": 30.52,
+    "description": "Operating multiple orphan care programs including Kiev Kids, Pearl Orphanage, Pilgrims Children Home, and Samaritan's Ministry serving children in crisis.",
+    "stats": {
+      "orphanages": "4+",
+      "focus": "Orphan Care",
+      "programs": "Kiev Kids & More"
+    },
+    "image": null
+  },
+  {
+    "id": "russia",
+    "type": "mission",
+    "name": "Russia Mission",
+    "country": "Russia",
+    "lat": 55.76,
+    "lng": 37.62,
+    "description": "Adam Zygarewicz serving in church development and theological education in partnership with Eurasian Theological Seminary in Moscow.",
+    "stats": {
+      "missionaries": "Zygarewicz",
+      "seminary": "Eurasian Theological",
+      "focus": "Education & Church"
+    },
+    "image": null
+  },
+  {
+    "id": "israel",
+    "type": "mission",
+    "name": "Israel Mission",
+    "country": "Israel",
+    "lat": 31.77,
+    "lng": 35.21,
+    "description": "Alfred and Kylee Khuri, Sebastian and Katelyne Schmidgall, and Eugene Mitrea serving in ministry in the Holy Land.",
+    "stats": {
+      "missionaries": "3+ families",
+      "focus": "Holy Land Ministry",
+      "region": "Middle East"
+    },
+    "image": null
+  },
+  {
+    "id": "turkey",
+    "type": "mission",
+    "name": "Turkey Mission",
+    "country": "Turkey",
+    "lat": 39.93,
+    "lng": 32.85,
+    "description": "Abram and Elva Valadez serving in church planting in one of the most challenging mission fields in the Middle East.",
+    "stats": {
+      "missionaries": "Valadez Family",
+      "focus": "Church Planting",
+      "region": "Middle East"
+    },
+    "image": null
+  },
+  {
+    "id": "czech",
+    "type": "mission",
+    "name": "Czech Republic Mission",
+    "country": "Czech Republic",
+    "lat": 50.08,
+    "lng": 14.44,
+    "description": "Michelle Saint-Loth serving in church development and outreach in the Czech Republic.",
+    "stats": {
+      "missionaries": "Saint-Loth",
+      "focus": "Church Development",
+      "region": "Central Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "hungary",
+    "type": "mission",
+    "name": "Hungary Mission",
+    "country": "Hungary",
+    "lat": 47.5,
+    "lng": 19.04,
+    "description": "Dan and Rose Smith serving in church planting and community ministry in Hungary.",
+    "stats": {
+      "missionaries": "Smith Family",
+      "focus": "Church Planting",
+      "region": "Central Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "poland",
+    "type": "mission",
+    "name": "Poland Mission",
+    "country": "Poland",
+    "lat": 52.23,
+    "lng": 21.01,
+    "description": "Mark Makhynia and Daniela Mireles serving in church development and outreach in Poland.",
+    "stats": {
+      "missionaries": "2",
+      "focus": "Church Development",
+      "region": "Central Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "france",
+    "type": "mission",
+    "name": "France Mission",
+    "country": "France",
+    "lat": 48.86,
+    "lng": 2.35,
+    "description": "Yves Bazile serving in church planting and ministry development in France.",
+    "stats": {
+      "missionaries": "Bazile",
+      "focus": "Church Planting",
+      "region": "Western Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "uae",
+    "type": "mission",
+    "name": "UAE \u2014 Gilgal Seminary",
+    "country": "United Arab Emirates",
+    "lat": 25.2,
+    "lng": 55.27,
+    "description": "Gilgal Theological Seminary providing ministerial training in the United Arab Emirates, serving the growing church across the Middle East region.",
+    "stats": {
+      "institution": "Gilgal Seminary",
+      "focus": "Theological Education",
+      "region": "Middle East"
+    },
+    "image": null
+  },
+  {
+    "id": "india",
+    "type": "mission",
+    "name": "India Mission",
+    "country": "India",
+    "lat": 9.93,
+    "lng": 76.27,
+    "description": "Church development and theological education through Mount Zion Bible College in Chengannur and Church of God India Theological Seminary. Serving communities across South Asia.",
+    "stats": {
+      "schools": "2 seminaries",
+      "focus": "Education & Church",
+      "region": "South Asia"
+    },
+    "image": null
+  },
+  {
+    "id": "philippines",
+    "type": "mission",
+    "name": "Philippines Mission",
+    "country": "Philippines",
+    "lat": 14.6,
+    "lng": 120.98,
+    "description": "Asian Center for Christian Ministries in Manila and Church of God Theological College in Isabela. Supporting church growth and children's ministry across the islands.",
+    "stats": {
+      "schools": "2",
+      "focus": "Theological Education",
+      "region": "Asia/Pacific"
+    },
+    "image": null
+  },
+  {
+    "id": "cambodia",
+    "type": "mission",
+    "name": "Cambodia Mission",
+    "country": "Cambodia",
+    "lat": 11.55,
+    "lng": 104.92,
+    "description": "Community development, anti-trafficking initiatives, and church planting in Cambodia. Serving vulnerable populations and building local church leadership.",
+    "stats": {
+      "focus": "Community Development",
+      "region": "Southeast Asia",
+      "ministries": "Anti-trafficking"
+    },
+    "image": null
+  },
+  {
+    "id": "thailand",
+    "type": "mission",
+    "name": "Thailand Mission",
+    "country": "Thailand",
+    "lat": 13.76,
+    "lng": 100.5,
+    "description": "Church planting and community outreach in Thailand, one of the most Buddhist nations in the world. Building relationships and sharing hope.",
+    "stats": {
+      "focus": "Church Planting",
+      "region": "Southeast Asia",
+      "challenge": "Buddhist Context"
+    },
+    "image": null
+  },
+  {
+    "id": "japan",
+    "type": "mission",
+    "name": "Japan Mission",
+    "country": "Japan",
+    "lat": 35.68,
+    "lng": 139.69,
+    "description": "Church development and outreach in Japan, working to grow the church in one of the most challenging mission fields in Asia.",
+    "stats": {
+      "focus": "Church Development",
+      "region": "East Asia",
+      "challenge": "Post-Christian"
+    },
+    "image": null
+  },
+  {
+    "id": "indonesia",
+    "type": "mission",
+    "name": "Indonesia Mission",
+    "country": "Indonesia",
+    "lat": -6.21,
+    "lng": 106.85,
+    "description": "Church planting and community development across the world's largest archipelago, reaching diverse people groups with the gospel.",
+    "stats": {
+      "focus": "Church Planting",
+      "region": "Southeast Asia",
+      "population": "270M+"
+    },
+    "image": null
+  },
+  {
+    "id": "nepal",
+    "type": "mission",
+    "name": "Nepal Mission",
+    "country": "Nepal",
+    "lat": 27.72,
+    "lng": 85.32,
+    "description": "Church planting and community outreach in the Himalayan nation, serving communities in one of the least-reached regions of the world.",
+    "stats": {
+      "focus": "Church Planting",
+      "region": "South Asia",
+      "challenge": "Restricted Access"
+    },
+    "image": null
+  },
+  {
+    "id": "bangladesh",
+    "type": "mission",
+    "name": "Bangladesh Mission",
+    "country": "Bangladesh",
+    "lat": 23.81,
+    "lng": 90.41,
+    "description": "Community development and church planting ministry in Bangladesh, one of the most densely populated nations in the world.",
+    "stats": {
+      "focus": "Community & Church",
+      "region": "South Asia",
+      "population": "170M+"
+    },
+    "image": null
+  },
+  {
+    "id": "myanmar",
+    "type": "mission",
+    "name": "Myanmar Mission",
+    "country": "Myanmar",
+    "lat": 16.87,
+    "lng": 96.2,
+    "description": "Church development and community ministry in Myanmar despite challenging political conditions. Supporting the local church through prayer and resources.",
+    "stats": {
+      "focus": "Church Development",
+      "region": "Southeast Asia",
+      "challenge": "Political Instability"
+    },
+    "image": null
+  },
+  {
+    "id": "south-korea",
+    "type": "mission",
+    "name": "South Korea Mission",
+    "country": "South Korea",
+    "lat": 37.57,
+    "lng": 126.98,
+    "description": "Partnership with Korean churches for global mission mobilization and church development.",
+    "stats": {
+      "focus": "Partnership",
+      "region": "East Asia",
+      "role": "Mission Mobilization"
+    },
+    "image": null
+  },
+  {
+    "id": "samoa",
+    "type": "mission",
+    "name": "Samoa Mission",
+    "country": "Samoa",
+    "lat": -13.83,
+    "lng": -171.76,
+    "description": "Church development and community outreach in the Pacific Islands, reaching island communities with the gospel.",
+    "stats": {
+      "focus": "Church Development",
+      "region": "Pacific Islands"
+    },
+    "image": null
+  },
+  {
+    "id": "new-zealand",
+    "type": "mission",
+    "name": "New Zealand Mission",
+    "country": "New Zealand",
+    "lat": -41.29,
+    "lng": 174.78,
+    "description": "Church planting and multicultural ministry in New Zealand, serving a diverse population in the South Pacific.",
+    "stats": {
+      "focus": "Multicultural Ministry",
+      "region": "Pacific"
+    },
+    "image": null
+  },
+  {
+    "id": "school-lee",
+    "type": "school",
+    "name": "Lee University",
+    "country": "United States",
+    "lat": 35.16,
+    "lng": -84.87,
+    "description": "The Church of God's oldest and largest educational institution, founded in 1918 as the Bible Training School. Now a premier Christian university offering over 100 areas of study with more than 5,000 students.",
+    "stats": {
+      "established": "1918",
+      "students": "5,000+",
+      "programs": "100+"
+    },
+    "image": "https://res.cloudinary.com/dwmnclsia/image/upload/v1773362893/world-map/school-lee-1773362892752.jpg",
+    "images": [
+      "https://res.cloudinary.com/dwmnclsia/image/upload/v1773362893/world-map/school-lee-1773362892752.jpg",
+      "https://res.cloudinary.com/dwmnclsia/image/upload/v1773363514/world-map/school-lee-1773363514597.jpg"
+    ],
+    "prayerPrompt": "",
+    "thumbnail": "https://res.cloudinary.com/dwmnclsia/image/upload/v1773363872/world-map/school-lee-1773363872319.png"
+  },
+  {
+    "id": "school-pts",
+    "type": "school",
+    "name": "Pentecostal Theological Seminary",
+    "country": "United States",
+    "lat": 35.18,
+    "lng": -84.85,
+    "description": "One of only six Pentecostal seminaries in the US, offering master's and doctoral programs in ministry, counseling, and theology. The denomination's largest graduate institution.",
+    "stats": {
+      "established": "1975",
+      "programs": "Master's & Doctoral",
+      "distinction": "1 of 6 Pentecostal Seminaries"
+    },
+    "image": null
+  },
+  {
+    "id": "school-sa",
+    "type": "school",
+    "name": "Full Gospel Church of God College",
+    "country": "South Africa",
+    "lat": -25.88,
+    "lng": 28.23,
+    "description": "Training pastors and church leaders across Southern Africa from its campus in Irene, South Africa. A key institution for ministerial preparation on the continent.",
+    "stats": {
+      "location": "Irene, SA",
+      "focus": "Ministerial Preparation",
+      "region": "Southern Africa"
+    },
+    "image": null
+  },
+  {
+    "id": "school-india",
+    "type": "school",
+    "name": "Mount Zion Bible College",
+    "country": "India",
+    "lat": 9.32,
+    "lng": 76.55,
+    "description": "Located in Chengannur, India, training pastors and church leaders for ministry across South Asia. One of the Church of God's key educational institutions in the region.",
+    "stats": {
+      "location": "Chengannur",
+      "focus": "Pastoral Training",
+      "region": "South Asia"
+    },
+    "image": null
+  },
+  {
+    "id": "school-argentina",
+    "type": "school",
+    "name": "Facultad Argentina de Estudios Teol\u00f3gicos",
+    "country": "Argentina",
+    "lat": -34.6,
+    "lng": -58.38,
+    "description": "Theological faculty in Buenos Aires serving Spanish-speaking church leaders across South America with advanced theological education.",
+    "stats": {
+      "location": "Buenos Aires",
+      "language": "Spanish",
+      "region": "South America"
+    },
+    "image": null
+  },
+  {
+    "id": "school-russia",
+    "type": "school",
+    "name": "Eurasian Theological Seminary",
+    "country": "Russia",
+    "lat": 55.76,
+    "lng": 37.62,
+    "description": "Training church leaders across the former Soviet Union from Moscow. Providing theological education in a region where the church is experiencing significant growth.",
+    "stats": {
+      "location": "Moscow",
+      "focus": "CIS Church Leaders",
+      "region": "Eurasia"
+    },
+    "image": null
+  },
+  {
+    "id": "school-ghana",
+    "type": "school",
+    "name": "Pan African Christian University College",
+    "country": "Ghana",
+    "lat": 5.53,
+    "lng": -0.63,
+    "description": "University college in Winneba, Ghana, providing higher education with a Christian foundation for students across West Africa.",
+    "stats": {
+      "location": "Winneba",
+      "focus": "Higher Education",
+      "region": "West Africa"
+    },
+    "image": null
+  },
+  {
+    "id": "school-haiti",
+    "type": "school",
+    "name": "Seminaire Th\u00e9ologique de l'\u00c9glise de Dieu",
+    "country": "Haiti",
+    "lat": 18.54,
+    "lng": -72.34,
+    "description": "Theological seminary in Port-au-Prince training church leaders for ministry across Haiti and the French-speaking Caribbean.",
+    "stats": {
+      "location": "Port-au-Prince",
+      "language": "French",
+      "focus": "Pastoral Training"
+    },
+    "image": null
+  },
+  {
+    "id": "school-guatemala",
+    "type": "school",
+    "name": "Seminario B\u00edblico Pentecostal de Centroam\u00e9rica",
+    "country": "Guatemala",
+    "lat": 14.84,
+    "lng": -91.52,
+    "description": "Biblical seminary in Quetzaltenango training church leaders for ministry across Central America.",
+    "stats": {
+      "location": "Quetzaltenango",
+      "language": "Spanish",
+      "region": "Central America"
+    },
+    "image": null
+  },
+  {
+    "id": "school-jamaica",
+    "type": "school",
+    "name": "Bethel Bible College",
+    "country": "Jamaica",
+    "lat": 18.04,
+    "lng": -77.5,
+    "description": "Bible college in Mandeville training pastors and church leaders for ministry across the Caribbean islands.",
+    "stats": {
+      "location": "Mandeville",
+      "focus": "Pastoral Training",
+      "region": "Caribbean"
+    },
+    "image": null
+  },
+  {
+    "id": "school-bulgaria",
+    "type": "school",
+    "name": "Bulgarian Theological College",
+    "country": "Bulgaria",
+    "lat": 42.43,
+    "lng": 24.62,
+    "description": "Theological college in Stara Zagora training church leaders for ministry across Bulgaria and the Balkans.",
+    "stats": {
+      "location": "Stara Zagora",
+      "focus": "Theological Education",
+      "region": "Eastern Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "school-philippines",
+    "type": "school",
+    "name": "Church of God Theological College",
+    "country": "Philippines",
+    "lat": 16.93,
+    "lng": 121.8,
+    "description": "Theological college in Isabela training church leaders for ministry across the Philippines and Southeast Asia.",
+    "stats": {
+      "location": "Isabela",
+      "focus": "Theological Education",
+      "region": "Asia/Pacific"
+    },
+    "image": null
+  },
+  {
+    "id": "school-kenya",
+    "type": "school",
+    "name": "Discipleship College",
+    "country": "Kenya",
+    "lat": 0.52,
+    "lng": 35.27,
+    "description": "Located in Eldoret, training church leaders and disciples for ministry across East Africa.",
+    "stats": {
+      "location": "Eldoret",
+      "focus": "Discipleship Training",
+      "region": "East Africa"
+    },
+    "image": null
+  },
+  {
+    "id": "school-nigeria",
+    "type": "school",
+    "name": "Full Gospel School of Theology",
+    "country": "Nigeria",
+    "lat": 5.12,
+    "lng": 7.35,
+    "description": "Training ministers and church planters in Abka, Nigeria for ministry across West Africa.",
+    "stats": {
+      "location": "Abka",
+      "focus": "Ministry Training",
+      "region": "West Africa"
+    },
+    "image": null
+  },
+  {
+    "id": "school-panama",
+    "type": "school",
+    "name": "Instituto B\u00edblico Paname\u00f1o",
+    "country": "Panama",
+    "lat": 9,
+    "lng": -79.52,
+    "description": "Biblical institute in Panama City training church leaders for ministry across Central America and the Caribbean.",
+    "stats": {
+      "location": "Panama City",
+      "language": "Spanish",
+      "region": "Central America"
+    },
+    "image": null
+  },
+  {
+    "id": "school-germany",
+    "type": "school",
+    "name": "European Bible Seminary",
+    "country": "Germany",
+    "lat": 48.47,
+    "lng": 8.25,
+    "description": "Seminary in Kniebis, Germany providing theological education in multiple languages. Serving church leaders across Europe with programs in church revitalization and cross-cultural ministry.",
+    "stats": {
+      "location": "Kniebis",
+      "languages": "Multiple",
+      "region": "Europe"
+    },
+    "image": null
+  },
+  {
+    "id": "school-ecuador",
+    "type": "school",
+    "name": "Seminario Ministerial Sudamericano",
+    "country": "Ecuador",
+    "lat": -0.18,
+    "lng": -78.47,
+    "description": "South American ministerial seminary in Quito, Ecuador training church leaders for ministry across the continent.",
+    "stats": {
+      "location": "Quito",
+      "language": "Spanish",
+      "region": "South America"
+    },
+    "image": null
+  },
+  {
+    "id": "school-manila",
+    "type": "school",
+    "name": "Asian Center for Christian Ministries",
+    "country": "Philippines",
+    "lat": 14.6,
+    "lng": 120.98,
+    "description": "Training center in Manila equipping church leaders and ministers for effective ministry across Asia and the Pacific.",
+    "stats": {
+      "location": "Manila",
+      "focus": "Christian Ministries",
+      "region": "Asia/Pacific"
+    },
+    "image": null
+  },
+  {
+    "id": "azusa-street",
+    "type": "mission",
+    "name": "Azusa Street",
+    "country": "United States",
+    "lat": 34.05,
+    "lng": -118.24,
+    "description": "Site of the Azusa Street Revival (1906\u20131915), the birthplace of modern Pentecostalism. Led by William J. Seymour at 312 Azusa Street in Los Angeles, this revival ignited a global movement that transformed Christianity worldwide.",
+    "stats": {
+      "established": "1906",
+      "leader": "William J. Seymour",
+      "significance": "Birthplace of Pentecostalism"
+    },
+    "image": null
+  },
+  {
+    "id": "hq",
+    "type": "headquarters",
+    "name": "Church of God World Headquarters",
+    "country": "United States",
+    "lat": 35.17,
+    "lng": -84.87,
+    "description": "International Offices, Cleveland, Tennessee",
+    "stats": {
+      "established": "1886",
+      "role": "World Headquarters"
+    },
+    "image": null,
+    "images": [],
+    "thumbnail": null
+  }
+]
