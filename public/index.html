@@ -600,9 +600,9 @@
   <div class="banner-main">
     <div class="banner-title">Church of God — Global Presence</div>
     <div class="banner-stats-row">
-      <div class="banner-stat"><span class="stat-value" data-target="186" data-suffix="">0</span><span class="stat-label">Countries</span></div>
+      <div class="banner-stat"><span class="stat-value" data-target="197" data-suffix="">0</span><span class="stat-label">Countries</span></div>
       <div class="banner-divider"></div>
-      <div class="banner-stat"><span class="stat-value" data-target="7" data-suffix="M+">0</span><span class="stat-label">Members</span></div>
+      <div class="banner-stat"><span class="stat-value" data-target="9.2" data-suffix="M+">0</span><span class="stat-label">Members</span></div>
       <div class="banner-divider"></div>
       <div class="banner-stat"><span class="stat-value" data-target="55" data-suffix="+">0</span><span class="stat-label">Mission Fields</span></div>
       <div class="banner-divider"></div>
@@ -1755,13 +1755,15 @@ window.addEventListener('resize', () => {
 document.querySelectorAll('#title-banner .stat-value').forEach(el => {
   const target = +el.dataset.target;
   const suffix = el.dataset.suffix || '';
+  const hasDecimal = String(el.dataset.target).includes('.');
   const dur = 2000;
   setTimeout(() => {
     const start = performance.now();
     function tick(now) {
       const t = Math.min((now - start) / dur, 1);
       const eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = Math.round(eased * target) + suffix;
+      const val = eased * target;
+      el.textContent = (hasDecimal ? val.toFixed(1) : Math.round(val)) + suffix;
       if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
