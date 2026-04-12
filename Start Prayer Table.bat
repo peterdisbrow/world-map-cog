@@ -6,36 +6,61 @@ cd /d "%~dp0"
 if exist "node.exe" if exist "node_modules\" goto SETUP_DONE
 
 echo.
-echo  First-time setup: downloading Node.js runtime...
-echo  This only happens once. Please wait...
+echo  ============================================================
+echo   First-time setup — this only happens once.
+echo   Please wait; do not close this window.
+echo  ============================================================
 echo.
 
 :: Clean up any leftover temp files from a previous failed attempt
 if exist "node-setup.zip" del "node-setup.zip" >nul 2>&1
 if exist "node-tmp"       rd /s /q "node-tmp"  >nul 2>&1
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ProgressPreference = 'SilentlyContinue'; " ^
-  "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile 'node-setup.zip'; " ^
-  "Expand-Archive -Path 'node-setup.zip' -DestinationPath 'node-tmp' -Force"
+:: Step 1: Download Node.js (~30 MB)
+echo  [1/4] Downloading Node.js runtime...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile 'node-setup.zip' -UseBasicParsing -TimeoutSec 300"
+
+if not exist "node-setup.zip" (
+    echo.
+    echo  ERROR: Download failed. Check your internet connection and try again.
+    pause
+    exit /b 1
+)
+
+:: Step 2: Extract Node.js
+echo  [2/4] Extracting Node.js...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = 'SilentlyContinue'; Expand-Archive -Path 'node-setup.zip' -DestinationPath 'node-tmp' -Force"
 
 if not exist "node-tmp\node-v22.14.0-win-x64\node.exe" (
     echo.
-    echo  ERROR: Download failed. Check your internet connection and try again.
+    echo  ERROR: Extraction failed.
     if exist "node-setup.zip" del "node-setup.zip" >nul 2>&1
     if exist "node-tmp"       rd /s /q "node-tmp"  >nul 2>&1
     pause
     exit /b 1
 )
 
-echo  Installing dependencies...
+:: Step 3: Install npm dependencies using the downloaded Node
+echo  [3/4] Installing dependencies (may take 1-2 minutes)...
 "node-tmp\node-v22.14.0-win-x64\node.exe" "node-tmp\node-v22.14.0-win-x64\node_modules\npm\bin\npm-cli.js" install --production --no-audit --no-fund
 
+if not exist "node_modules" (
+    echo.
+    echo  ERROR: npm install failed.
+    if exist "node-setup.zip" del "node-setup.zip" >nul 2>&1
+    if exist "node-tmp"       rd /s /q "node-tmp"  >nul 2>&1
+    pause
+    exit /b 1
+)
+
+:: Step 4: Finalize — copy node.exe, clean up temp files
+echo  [4/4] Finalizing...
 copy /y "node-tmp\node-v22.14.0-win-x64\node.exe" "node.exe" >nul
 rd /s /q "node-tmp"
 del "node-setup.zip" >nul 2>&1
 
-echo  Setup complete.
+echo.
+echo  Setup complete!
 echo.
 
 :SETUP_DONE
