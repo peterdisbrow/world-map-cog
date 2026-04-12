@@ -46,10 +46,10 @@ set CHROME_CODE=%LOCALAPPDATA%\Google\Chrome\User Data\Default\Code Cache
 if exist "%CHROME_CACHE%"    rd /s /q "%CHROME_CACHE%"    >nul 2>&1
 if exist "%CHROME_CODE%"     rd /s /q "%CHROME_CODE%"     >nul 2>&1
 
-:: ── Start the local server (skip if already running) ──────────────────
+:: ── Start the local server with restart-after-update loop ─────────────
 powershell -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:3030/api/health' -UseBasicParsing -TimeoutSec 2 >$null; exit 0 } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 (
-    start "" /b node.exe server.js > server.log 2>&1
+    start "Prayer Table Server" /min cmd /c "cd /d ""%~dp0"" && call ""%~dp0server-restart-loop.bat"""
 )
 
 :: ── Wait for server ready ─────────────────────────────────────────────

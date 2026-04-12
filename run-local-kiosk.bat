@@ -24,7 +24,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 
 if errorlevel 1 (
   echo Starting local server...
-  start "World Map Local Server" /MIN cmd /c "cd /d ""%~dp0"" && node server.js >> ""%SERVER_LOG%"" 2>&1"
+  start "World Map Local Server" /MIN cmd /c "cd /d ""%~dp0"" && call ""%~dp0start-local-server.bat"""
 ) else (
   echo Local server already running.
 )

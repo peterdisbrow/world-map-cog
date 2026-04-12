@@ -4,6 +4,7 @@ const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const { URL } = require("url");
+const { spawnSync } = require("child_process");
 
 const seedData = require("./seed-data.json");
 
@@ -19,6 +20,13 @@ const REMOTE_BASE_URL = process.env.REMOTE_BASE_URL || "https://world-map-cog.ve
 const SYNC_INTERVAL_MS = Number(process.env.SYNC_INTERVAL_MS || 5 * 60 * 1000);
 const REMOTE_FETCH_TIMEOUT_MS = Number(process.env.REMOTE_FETCH_TIMEOUT_MS || 15000);
 const ASSET_FETCH_TIMEOUT_MS = Number(process.env.ASSET_FETCH_TIMEOUT_MS || 20000);
+
+const GITHUB_REPO = "peterdisbrow/world-map-cog";
+const RELEASE_TAG = "v1.0.0";
+const UPDATE_STATE_FILE = path.join(LOCAL_DATA_DIR, "last-update.json");
+const UPDATE_EXIT_CODE = 100;
+// Names at the top level of ROOT_DIR that must never be overwritten by an update
+const PRESERVE_ON_UPDATE = new Set(["local-data", "node.exe", "node_modules"]);
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -472,6 +480,161 @@ function scheduleSync() {
   }
 }
 
+// ---- Auto-updater ----
+
+async function readUpdateState() {
+  try {
+    const raw = await fsp.readFile(UPDATE_STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function writeUpdateState(patch) {
+  const current = await readUpdateState();
+  await writeJsonFile(UPDATE_STATE_FILE, { ...current, ...patch });
+}
+
+async function extractZipWithPowershell(zipPath, destDir) {
+  await fsp.rm(destDir, { recursive: true, force: true });
+  const result = spawnSync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy", "Bypass",
+      "-Command",
+      `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`,
+    ],
+    { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", timeout: 60000 }
+  );
+  if (result.status !== 0) {
+    const msg = (result.stderr || result.stdout || "").trim();
+    throw new Error(`ZIP extraction failed (exit ${result.status}): ${msg}`);
+  }
+}
+
+async function copyDirContents(srcDir, destDir, topLevelSkip) {
+  const entries = await fsp.readdir(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (topLevelSkip && topLevelSkip.has(entry.name)) continue;
+    const src = path.join(srcDir, entry.name);
+    const dest = path.join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      await fsp.mkdir(dest, { recursive: true });
+      await copyDirContents(src, dest, null);
+    } else if (entry.isFile()) {
+      await fsp.mkdir(path.dirname(dest), { recursive: true });
+      await fsp.copyFile(src, dest);
+    }
+  }
+}
+
+async function checkAndApplyUpdate() {
+  console.log("[auto-update] checking for updates...");
+  const checkedAt = new Date().toISOString();
+
+  try {
+    const releaseApiUrl = `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${RELEASE_TAG}`;
+    const apiRes = await fetchWithTimeout(
+      releaseApiUrl,
+      { headers: { "User-Agent": "world-map-kiosk/1.0" } },
+      15000
+    );
+
+    if (!apiRes.ok) {
+      throw new Error(`GitHub API responded with ${apiRes.status}`);
+    }
+
+    const release = await apiRes.json();
+    const asset = (release.assets || []).find((a) => a.name === "world-map-kiosk-portable.zip");
+
+    if (!asset) {
+      throw new Error("world-map-kiosk-portable.zip not found in release assets");
+    }
+
+    const remoteTimestamp = asset.updated_at || release.published_at;
+    const state = await readUpdateState();
+
+    if (state.installedTimestamp && new Date(remoteTimestamp) <= new Date(state.installedTimestamp)) {
+      console.log(`[auto-update] up to date (installed: ${state.installedTimestamp})`);
+      await writeUpdateState({ lastCheckedAt: checkedAt, lastError: null });
+      return false;
+    }
+
+    console.log(`[auto-update] update available (remote asset: ${remoteTimestamp}), downloading...`);
+
+    const dlRes = await fetchWithTimeout(
+      asset.browser_download_url,
+      { headers: { "User-Agent": "world-map-kiosk/1.0" } },
+      120000
+    );
+
+    if (!dlRes.ok) {
+      throw new Error(`Download failed with HTTP ${dlRes.status}`);
+    }
+
+    const zipBytes = Buffer.from(await dlRes.arrayBuffer());
+    const zipTempPath = path.join(LOCAL_DATA_DIR, "pending-update.zip");
+    await fsp.writeFile(zipTempPath, zipBytes);
+    console.log(`[auto-update] downloaded ${zipBytes.length} bytes`);
+
+    const stagingDir = path.join(LOCAL_DATA_DIR, "update-staging");
+    await extractZipWithPowershell(zipTempPath, stagingDir);
+    console.log("[auto-update] extracted zip");
+
+    // Strip top-level wrapper folder if the zip contains exactly one directory
+    const stagingEntries = await fsp.readdir(stagingDir, { withFileTypes: true });
+    const sourceDir =
+      stagingEntries.length === 1 && stagingEntries[0].isDirectory()
+        ? path.join(stagingDir, stagingEntries[0].name)
+        : stagingDir;
+
+    await copyDirContents(sourceDir, ROOT_DIR, PRESERVE_ON_UPDATE);
+    console.log("[auto-update] files installed");
+
+    await fsp.rm(stagingDir, { recursive: true, force: true }).catch(() => {});
+    await fsp.unlink(zipTempPath).catch(() => {});
+
+    await writeUpdateState({
+      lastCheckedAt: checkedAt,
+      lastInstalledAt: checkedAt,
+      installedTimestamp: remoteTimestamp,
+      lastError: null,
+    });
+
+    console.log("[auto-update] update installed — restarting server...");
+    process.exit(UPDATE_EXIT_CODE);
+  } catch (error) {
+    console.warn(`[auto-update] ${error.message}`);
+    await writeUpdateState({ lastCheckedAt: checkedAt, lastError: error.message }).catch(() => {});
+    return false;
+  }
+}
+
+function scheduleUpdateCheck() {
+  function msUntilTime(hour, minute) {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    return next - now;
+  }
+
+  function scheduleNext() {
+    const delay = msUntilTime(2, 30);
+    const runAt = new Date(Date.now() + delay);
+    console.log(`[auto-update] next scheduled check at ${runAt.toLocaleTimeString()} on ${runAt.toLocaleDateString()}`);
+    const timer = setTimeout(() => {
+      checkAndApplyUpdate().catch(() => {});
+      scheduleNext();
+    }, delay);
+    if (typeof timer.unref === "function") timer.unref();
+  }
+
+  scheduleNext();
+}
+
 async function handleLocations(req, res, pathname) {
   const parts = pathname.split("/").filter(Boolean);
   const id = parts[2] ? decodeURIComponent(parts[2]) : null;
@@ -531,6 +694,12 @@ async function requestHandler(req, res) {
     });
   }
 
+  if (pathname === "/api/check-update" && req.method === "POST") {
+    sendJson(res, 202, { ok: true, message: "Update check started. Server will restart if an update is found." });
+    setImmediate(() => checkAndApplyUpdate().catch(() => {}));
+    return;
+  }
+
   if (pathname.startsWith("/api/upload/")) {
     return sendJson(res, 403, {
       error: "Local kiosk is read-only. Uploads are disabled here.",
@@ -579,12 +748,19 @@ ensureLocalStore()
   })
   .finally(() => {
     scheduleSync();
+    scheduleUpdateCheck();
     server.listen(PORT, HOST, () => {
       console.log(`World Map local server running at http://${HOST}:${PORT}`);
       console.log(`Remote content source: ${REMOTE_BASE_URL}`);
       console.log(`Local cache directory: ${LOCAL_DATA_DIR}`);
-      syncFromRemote("startup").catch((error) => {
-        console.warn(`[mirror-sync] startup sync skipped: ${error.message}`);
-      });
+      syncFromRemote("startup")
+        .catch((error) => {
+          console.warn(`[mirror-sync] startup sync skipped: ${error.message}`);
+        })
+        .finally(() => {
+          checkAndApplyUpdate().catch((error) => {
+            console.warn(`[auto-update] startup check failed: ${error.message}`);
+          });
+        });
     });
   });

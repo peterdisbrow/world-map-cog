@@ -9,4 +9,11 @@ if errorlevel 1 (
   exit /b 1
 )
 
-node server.js
+if not exist local-data mkdir local-data
+
+:restart_loop
+node server.js >> local-data\server.log 2>&1
+if %errorlevel% == 100 (
+  echo [%date% %time%] Restarting server after auto-update... >> local-data\server.log
+  goto restart_loop
+)
