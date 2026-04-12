@@ -866,8 +866,9 @@ let locations = _hardcoded_locations;
 fetch('/api/locations').then(r => r.ok ? r.json() : null).then(data => {
   if (data && data.length) { locations = data; }
 }).catch(() => {}).finally(() => {
-  // Re-render markers if map is already loaded
-  if (window._mapReady) window._renderMarkers(locations);
+  // Rebuild ticker and re-render markers if the map has already loaded
+  if (typeof buildTicker === 'function') buildTicker(locations);
+  if (window._mapReady && typeof window._renderMarkers === 'function') window._renderMarkers(locations);
 });
 
 const HQ = { lat: 35.17, lng: -84.87 }; // Cleveland, TN
@@ -1420,8 +1421,8 @@ d3.json(WORLD_URL).then(world => {
   const hqData = hqFromApi || {
     id: 'hq', type: 'hq', name: 'Church of God International Offices',
     country: 'United States',
-    description: 'The world headquarters of the Church of God, located in Cleveland, Tennessee since 1886. Home to the International Offices, overseeing ministry in 186 countries with over 7 million members worldwide. Also home to Lee University and Pentecostal Theological Seminary.',
-    stats: { established: '1886', countries: '186', members: '7M+' }, image: null
+    description: 'The world headquarters of the Church of God, located in Cleveland, Tennessee since 1886. Home to the International Offices, overseeing ministry in 197 countries with over 9.2 million members worldwide. Also home to Lee University and Pentecostal Theological Seminary.',
+    stats: { established: '1886', countries: '197', members: '9.2M+' }, image: null
   };
   function hqClick(e) {
     if (e) e.preventDefault();
@@ -1537,7 +1538,11 @@ d3.json(WORLD_URL).then(world => {
   }
   setTimeout(() => setInterval(flashArc, 10000 + Math.random() * 5000), 6000);
 
-
+  // Signal that the map is fully rendered so the API fetch finally-block can update it
+  window._mapReady = true;
+  window._renderMarkers = function(locs) {
+    buildTicker(locs);
+  };
 
 });
 
@@ -1773,17 +1778,18 @@ document.querySelectorAll('#title-banner .stat-value').forEach(el => {
 // ════════════════════════════════════════════════════
 // Enhancement 7: Scrolling Ticker Content
 // ════════════════════════════════════════════════════
-(function buildTicker() {
+function buildTicker(locs) {
   const tickerEl = document.getElementById('ticker-content');
   if (!tickerEl) return;
-  const items = locations.map(loc => {
+  const items = (locs || locations).map(loc => {
     const stats = loc.stats ? Object.values(loc.stats)[0] : '';
     return `${loc.name} — ${loc.country}${stats ? ' · ' + stats : ''}`;
   });
   // Duplicate for seamless scroll
   const html = items.map(t => `<span>${t}</span><span class="ticker-dot">◆</span>`).join('');
   tickerEl.innerHTML = html + html;
-})();
+}
+buildTicker(locations); // initial build with hardcoded fallback; rebuilt after API data loads
 
 // ════════════════════════════════════════════════════
 // Enhancement 8: Touch Ripple Effect
