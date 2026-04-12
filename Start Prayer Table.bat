@@ -2,6 +2,50 @@
 title Prayer Table
 cd /d "%~dp0"
 
+:: ── First-time setup: download Node.js + install dependencies ─────────
+if exist "node.exe" if exist "node_modules\" goto SETUP_DONE
+
+echo.
+echo  First-time setup: downloading Node.js runtime...
+echo  This only happens once. Please wait...
+echo.
+
+:: Clean up any leftover temp files from a previous failed attempt
+if exist "node-setup.zip" del "node-setup.zip" >nul 2>&1
+if exist "node-tmp"       rd /s /q "node-tmp"  >nul 2>&1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ProgressPreference = 'SilentlyContinue'; " ^
+  "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile 'node-setup.zip'; " ^
+  "Expand-Archive -Path 'node-setup.zip' -DestinationPath 'node-tmp' -Force"
+
+if not exist "node-tmp\node-v22.14.0-win-x64\node.exe" (
+    echo.
+    echo  ERROR: Download failed. Check your internet connection and try again.
+    if exist "node-setup.zip" del "node-setup.zip" >nul 2>&1
+    if exist "node-tmp"       rd /s /q "node-tmp"  >nul 2>&1
+    pause
+    exit /b 1
+)
+
+echo  Installing dependencies...
+"node-tmp\node-v22.14.0-win-x64\node.exe" "node-tmp\node-v22.14.0-win-x64\node_modules\npm\bin\npm-cli.js" install --production --no-audit --no-fund
+
+copy /y "node-tmp\node-v22.14.0-win-x64\node.exe" "node.exe" >nul
+rd /s /q "node-tmp"
+del "node-setup.zip" >nul 2>&1
+
+echo  Setup complete.
+echo.
+
+:SETUP_DONE
+
+:: ── Clear Chrome cache (so updates appear immediately) ────────────────
+set CHROME_CACHE=%LOCALAPPDATA%\Google\Chrome\User Data\Default\Cache
+set CHROME_CODE=%LOCALAPPDATA%\Google\Chrome\User Data\Default\Code Cache
+if exist "%CHROME_CACHE%"    rd /s /q "%CHROME_CACHE%"    >nul 2>&1
+if exist "%CHROME_CODE%"     rd /s /q "%CHROME_CODE%"     >nul 2>&1
+
 :: ── Start the local server (skip if already running) ──────────────────
 powershell -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:3030/api/health' -UseBasicParsing -TimeoutSec 2 >$null; exit 0 } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 (
