@@ -61,6 +61,37 @@ Notes:
 - App code updates are still separate from content sync. If the UI code changes, update the project files on the wall PC and restart the launcher.
 - Generated local data is ignored by git via `local-data/`.
 
+## Portable Bundle (Recommended) — Zero-Install Windows Setup
+
+Download `world-map-kiosk-portable.zip` from the [latest release](https://github.com/peterdisbrow/world-map-cog/releases/latest), unzip anywhere, and double-click **`Start Prayer Table.vbs`**.
+
+The bundle includes Node.js v22 and all dependencies — no installation required.
+
+The launcher:
+- Clears the Chrome cache on every launch (prevents stale assets)
+- Starts the local server
+- Opens Chrome (or Edge) fullscreen in kiosk mode
+- Auto-restarts Chrome if it ever closes
+
+### SETUP-KIOSK.bat — One-Time Kiosk Hardening
+
+**Run once as Administrator** after first setup to harden Windows for unattended 24/7 operation.
+
+Right-click `SETUP-KIOSK.bat` → **Run as administrator**
+
+| Step | What it does |
+|------|-------------|
+| **1. Nightly reboot** | Creates a scheduled task *"Prayer Table Nightly Reboot"* that reboots at **3:00 AM daily** (`schtasks /create`). Keeps the system fresh and clears memory leaks. |
+| **2. Power plan** | Sets High Performance scheme; `powercfg` sets sleep and display timeouts to **Never** on both AC and DC power. |
+| **3. Disable Windows Update** | Sets active hours to 0–23 (registry) so WU can never auto-reboot. Pauses updates 35 days via Group Policy. Stops and **disables** the `wuauserv` service entirely. |
+| **4. Auto-hide taskbar** | Writes `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3` to enable taskbar auto-hide, then restarts Explorer to apply immediately. |
+
+Reboot the PC after running to ensure all settings take effect cleanly.
+
+### SETUP-AUTOSTART.bat — Launch on Login
+
+Double-click to add a startup shortcut so the kiosk launches automatically on Windows login (no admin needed).
+
 ## Release Package
 
 For a downloadable deployment bundle without exposing the repo publicly, build a release zip:
