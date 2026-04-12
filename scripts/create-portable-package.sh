@@ -1,7 +1,7 @@
 #!/bin/bash
 # Creates world-map-kiosk-portable.zip — a zero-install Windows bundle.
-# node.exe and node_modules are NOT included; the launcher downloads them
-# on first run. This keeps the zip tiny (well under 1 MB).
+# Includes node.exe (Windows x64) and node_modules so the kiosk works
+# immediately on first launch with no internet access required.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -9,6 +9,27 @@ RELEASE_DIR="$ROOT_DIR/release"
 BUNDLE_NAME="world-map-kiosk-portable"
 STAGING_DIR="$RELEASE_DIR/$BUNDLE_NAME"
 ZIP_PATH="$RELEASE_DIR/${BUNDLE_NAME}.zip"
+NODE_VERSION="22.14.0"
+NODE_WIN_ZIP="node-v${NODE_VERSION}-win-x64.zip"
+NODE_WIN_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_WIN_ZIP}"
+
+# ── Ensure Windows node.exe is present ────────────────────────────────
+if [ ! -f "$ROOT_DIR/node.exe" ]; then
+  echo "node.exe not found — downloading Windows Node.js ${NODE_VERSION}..."
+  TMP_DIR=$(mktemp -d)
+  curl -fsSL --progress-bar "$NODE_WIN_URL" -o "$TMP_DIR/$NODE_WIN_ZIP"
+  unzip -q "$TMP_DIR/$NODE_WIN_ZIP" -d "$TMP_DIR"
+  cp "$TMP_DIR/node-v${NODE_VERSION}-win-x64/node.exe" "$ROOT_DIR/node.exe"
+  rm -rf "$TMP_DIR"
+  echo "node.exe ready."
+fi
+
+# ── Ensure node_modules is present ────────────────────────────────────
+if [ ! -d "$ROOT_DIR/node_modules" ]; then
+  echo "node_modules not found — running npm install..."
+  (cd "$ROOT_DIR" && npm install --production --no-audit --no-fund)
+  echo "node_modules ready."
+fi
 
 echo "Building portable kiosk bundle..."
 rm -rf "$STAGING_DIR" "$ZIP_PATH"
@@ -22,8 +43,6 @@ rsync -a \
   --exclude '.env.local' \
   --exclude '.vercel' \
   --exclude 'local-data' \
-  --exclude 'node_modules' \
-  --exclude 'node.exe' \
   --exclude 'release' \
   --exclude 'scripts' \
   --exclude 'server.log' \
