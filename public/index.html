@@ -545,9 +545,81 @@
     50% { stroke-opacity: 0.8; }
   }
 
+  /* ── Splash Screen ──────────────────────────────── */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: #0a0e1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.9s ease;
+  }
+  #splash.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #splash .splash-logo {
+    width: 160px;
+    height: auto;
+    margin-bottom: 28px;
+    animation: splash-breathe 2.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 24px rgba(0,229,255,0.25));
+  }
+  #splash .splash-title {
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    color: #e8eaf0;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+  }
+  #splash .splash-status {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(0,229,255,0.65);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    min-height: 16px;
+  }
+  #splash .splash-bar {
+    width: 220px;
+    height: 2px;
+    background: rgba(0,229,255,0.12);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  #splash .splash-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00b8d4, #00e5ff);
+    border-radius: 1px;
+    animation: splash-progress 3s ease-out forwards;
+  }
+  @keyframes splash-breathe {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.04); }
+  }
+  @keyframes splash-progress {
+    0%   { width: 0%; }
+    20%  { width: 35%; }
+    50%  { width: 65%; }
+    80%  { width: 85%; }
+    100% { width: 92%; }
+  }
+
 </style>
 </head>
 <body>
+<div id="splash">
+  <img class="splash-logo" src="/assets/branding/cog-logo.png" alt="Church of God">
+  <div class="splash-title">Global Prayer Table</div>
+  <div class="splash-status" id="splash-status">Loading map...</div>
+  <div class="splash-bar"><div class="splash-bar-fill" id="splash-bar-fill"></div></div>
+</div>
 <div id="scene">
 <div id="map-container"></div>
 
@@ -629,6 +701,52 @@
 </div>
 
 <script>
+// ════════════════════════════════════════════════════
+// KIOSK LOCKDOWN — Prevent accidental exit
+// ════════════════════════════════════════════════════
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('selectstart', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if ((e.altKey && e.key === 'F4') ||
+      (e.ctrlKey && (e.key === 'w' || e.key === 'W')) ||
+      (e.ctrlKey && (e.key === 'q' || e.key === 'Q'))) {
+    e.preventDefault(); return false;
+  }
+  if (e.key === 'F11') { e.preventDefault(); return false; }
+  if ((e.ctrlKey && (e.key === 'r' || e.key === 'R')) || e.key === 'F5') {
+    e.preventDefault(); return false;
+  }
+  if (e.ctrlKey && (e.key === 't' || e.key === 'T' || e.key === 'n' || e.key === 'N')) {
+    e.preventDefault(); return false;
+  }
+});
+window.addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue = ''; });
+
+// ════════════════════════════════════════════════════
+// SPLASH SCREEN
+// ════════════════════════════════════════════════════
+let _splashMapDone = false;
+let _splashDataDone = false;
+
+function _checkSplashReady() {
+  if (_splashMapDone && _splashDataDone) _hideSplash();
+}
+function _hideSplash() {
+  const splash = document.getElementById('splash');
+  const fill = document.getElementById('splash-bar-fill');
+  if (!splash || splash.classList.contains('fade-out')) return;
+  fill.style.animation = 'none';
+  fill.style.transition = 'width 0.3s ease';
+  fill.style.width = '100%';
+  document.getElementById('splash-status').textContent = 'Ready';
+  setTimeout(() => {
+    splash.classList.add('fade-out');
+    setTimeout(() => splash.remove(), 950);
+  }, 350);
+}
+// Safety fallback: remove splash after 6s regardless
+setTimeout(_hideSplash, 6000);
+
 // ════════════════════════════════════════════════════
 // LOCATION DATA — loaded from API / locations.json
 // ════════════════════════════════════════════════════
@@ -865,10 +983,14 @@ const _hardcoded_locations = [
 let locations = _hardcoded_locations;
 fetch('/api/locations').then(r => r.ok ? r.json() : null).then(data => {
   if (data && data.length) { locations = data; }
+  const s = document.getElementById('splash-status');
+  if (s) s.textContent = 'Syncing latest data...';
 }).catch(() => {}).finally(() => {
   // Rebuild ticker and re-render markers if the map has already loaded
   if (typeof buildTicker === 'function') buildTicker(locations);
   if (window._mapReady && typeof window._renderMarkers === 'function') window._renderMarkers(locations);
+  _splashDataDone = true;
+  _checkSplashReady();
 });
 
 const HQ = { lat: 35.17, lng: -84.87 }; // Cleveland, TN
@@ -1543,6 +1665,9 @@ d3.json(WORLD_URL).then(world => {
   window._renderMarkers = function(locs) {
     buildTicker(locs);
   };
+  // Signal map render complete → check if splash can be dismissed
+  _splashMapDone = true;
+  _checkSplashReady();
 
 });
 
