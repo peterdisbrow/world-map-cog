@@ -611,18 +611,22 @@ async function geocodeLookup() {
   if (!query) { toast('Enter a name or country first', 'error'); return; }
   const status = document.getElementById('geocodeStatus');
   status.textContent = 'Looking up...';
+  if (!navigator.onLine) {
+    status.textContent = 'Offline - enter latitude/longitude manually';
+    return;
+  }
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
       headers: { 'User-Agent': 'GlobalPrayerTable/1.0' }
     });
     const results = await res.json();
-    if (results.length === 0) { status.textContent = 'Not found — try a different name'; return; }
+    if (results.length === 0) { status.textContent = 'Not found - enter latitude/longitude manually'; return; }
     document.querySelector('[name=lat]').value = parseFloat(results[0].lat).toFixed(4);
     document.querySelector('[name=lng]').value = parseFloat(results[0].lon).toFixed(4);
     status.textContent = `Found: ${results[0].display_name.substring(0, 50)}`;
     toast('Coordinates filled!', 'success');
   } catch (err) {
-    status.textContent = 'Lookup failed';
+    status.textContent = 'Lookup unavailable - enter coordinates manually';
     toast('Geocode error: ' + err.message, 'error');
   }
 }

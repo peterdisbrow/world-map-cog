@@ -14,7 +14,7 @@
     },
     "image": null,
     "images": [],
-    "thumbnail": "https://res.cloudinary.com/dwmnclsia/image/upload/v1773363829/world-map/kenya-1773363829649.png"
+    "thumbnail": null
   },
   {
     "id": "nigeria",
@@ -792,13 +792,12 @@
       "students": "5,000+",
       "programs": "100+"
     },
-    "image": "https://res.cloudinary.com/dwmnclsia/image/upload/v1773362893/world-map/school-lee-1773362892752.jpg",
+    "image": "/assets/seed/school-lee-2.jpg",
     "images": [
-      "https://res.cloudinary.com/dwmnclsia/image/upload/v1773362893/world-map/school-lee-1773362892752.jpg",
-      "https://res.cloudinary.com/dwmnclsia/image/upload/v1773363514/world-map/school-lee-1773363514597.jpg"
+      "/assets/seed/school-lee-2.jpg"
     ],
     "prayerPrompt": "",
-    "thumbnail": "https://res.cloudinary.com/dwmnclsia/image/upload/v1773363872/world-map/school-lee-1773363872319.png"
+    "thumbnail": "/assets/seed/school-lee-thumbnail.png"
   },
   {
     "id": "school-pts",

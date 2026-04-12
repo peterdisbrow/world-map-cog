@@ -98,7 +98,7 @@
 
 <div class="header">
   <div class="header-brand">
-    <img src="https://res.cloudinary.com/dwmnclsia/image/upload/v1773364246/world-map/hq-1773364246794.png" alt="Church of God">
+    <img src="/assets/branding/cog-logo.png" alt="Church of God">
     <div>
       <h1>Church of God <span>Global Communications</span></h1>
     </div>
@@ -138,9 +138,17 @@
         <label>Location on Map *</label>
         <input id="locationSearch" type="text" placeholder="Search for your city or address..." autocomplete="off">
         <div class="loc-results" id="locResults"></div>
-        <div class="hint" id="coordHint">Type a city or address and select from the dropdown to place your pin on the map.</div>
-        <input name="lat" type="hidden">
-        <input name="lng" type="hidden">
+        <div class="hint" id="coordHint">Type a city or address and select a result, or enter latitude/longitude manually below.</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Latitude *</label>
+        <input name="lat" type="number" step="any" placeholder="e.g. -1.2921">
+      </div>
+      <div class="form-group">
+        <label>Longitude *</label>
+        <input name="lng" type="number" step="any" placeholder="e.g. 36.8219">
       </div>
     </div>
     <div class="form-row">
@@ -359,7 +367,7 @@ async function submitLocation() {
     return;
   }
   if (isNaN(lat) || isNaN(lng)) {
-    toast('Please search and select a location on the map', 'error');
+    toast('Please search for a location or enter latitude/longitude manually', 'error');
     return;
   }
 
@@ -427,39 +435,65 @@ let searchTimer = null;
 const locSearch = document.getElementById('locationSearch');
 const locResults = document.getElementById('locResults');
 const coordHint = document.getElementById('coordHint');
+const latInput = document.querySelector('[name=lat]');
+const lngInput = document.querySelector('[name=lng]');
+
+function updateCoordHintFromInputs() {
+  const lat = parseFloat(latInput.value);
+  const lng = parseFloat(lngInput.value);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    coordHint.textContent = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    coordHint.classList.add('found');
+  } else {
+    coordHint.textContent = 'Type a city or address and select a result, or enter latitude/longitude manually below.';
+    coordHint.classList.remove('found');
+  }
+}
 
 locSearch.addEventListener('input', () => {
   clearTimeout(searchTimer);
   const q = locSearch.value.trim();
   if (q.length < 3) { locResults.classList.remove('open'); return; }
   searchTimer = setTimeout(async () => {
+    if (!navigator.onLine) {
+      locResults.classList.remove('open');
+      coordHint.textContent = 'Lookup is offline right now. Enter latitude/longitude manually below.';
+      coordHint.classList.remove('found');
+      return;
+    }
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, {
         headers: { 'Accept-Language': 'en' }
       });
       const results = await res.json();
       if (!results.length) {
-        locResults.innerHTML = '<div class="loc-result" style="color:var(--muted)">No results found</div>';
+        locResults.innerHTML = '<div class="loc-result" style="color:var(--muted)">No results found. Enter coordinates manually below.</div>';
       } else {
         locResults.innerHTML = results.map(r =>
           `<div class="loc-result" data-lat="${r.lat}" data-lng="${r.lon}">${r.display_name}</div>`
         ).join('');
       }
       locResults.classList.add('open');
-    } catch { locResults.classList.remove('open'); }
+    } catch {
+      locResults.classList.remove('open');
+      coordHint.textContent = 'Lookup is unavailable. Enter latitude/longitude manually below.';
+      coordHint.classList.remove('found');
+    }
   }, 400);
 });
 
 locResults.addEventListener('click', (e) => {
   const item = e.target.closest('.loc-result');
   if (!item || !item.dataset.lat) return;
-  document.querySelector('[name=lat]').value = item.dataset.lat;
-  document.querySelector('[name=lng]').value = item.dataset.lng;
+  latInput.value = item.dataset.lat;
+  lngInput.value = item.dataset.lng;
   locSearch.value = item.textContent;
   locResults.classList.remove('open');
-  coordHint.textContent = `Coordinates: ${parseFloat(item.dataset.lat).toFixed(4)}, ${parseFloat(item.dataset.lng).toFixed(4)}`;
-  coordHint.classList.add('found');
+  updateCoordHintFromInputs();
 });
+
+latInput.addEventListener('input', updateCoordHintFromInputs);
+lngInput.addEventListener('input', updateCoordHintFromInputs);
 
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.loc-wrap')) locResults.classList.remove('open');
@@ -481,8 +515,7 @@ function resetForm() {
   `;
   document.getElementById('charCount').textContent = '0';
   document.getElementById('locationSearch').value = '';
-  coordHint.textContent = 'Type a city or address and select from the dropdown to place your pin on the map.';
-  coordHint.classList.remove('found');
+  updateCoordHintFromInputs();
   document.getElementById('photoGrid').innerHTML = '';
   document.getElementById('thumbPreview').innerHTML = '';
   document.getElementById('progressBar').style.display = 'none';
@@ -493,6 +526,8 @@ function resetForm() {
   document.getElementById('successPage').style.display = 'none';
   document.getElementById('formPage').style.display = 'block';
 }
+
+updateCoordHintFromInputs();
 </script>
 </body>
 </html>

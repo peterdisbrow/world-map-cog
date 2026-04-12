@@ -2,8 +2,16 @@
   "name": "global-prayer-table",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "start:local": "node server.js",
+    "build:release": "bash ./scripts/create-release-package.sh"
+  },
   "dependencies": {
     "@vercel/blob": "^0.27.0",
-    "cloudinary": "^2.9.0"
+    "@vercel/functions": "^3.4.3",
+    "cloudinary": "^2.9.0",
+    "d3": "^7.9.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   }
 }
