@@ -17,6 +17,16 @@ if not exist "node.exe" (
 )
 echo [%date% %time%] node.exe found OK >> "%~dp0debug.log"
 
+:: ── Power-outage recovery: kill stale processes from a previous instance ──
+echo [%date% %time%] Checking for stale processes... >> "%~dp0debug.log"
+taskkill /f /im node.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+:: Kill Chrome/Edge that might be stuck on an old session
+taskkill /f /im chrome.exe >nul 2>&1
+taskkill /f /im msedge.exe >nul 2>&1
+timeout /t 1 /nobreak >nul
+echo [%date% %time%] Stale process cleanup done >> "%~dp0debug.log"
+
 :SETUP_DONE
 
 :: ── Clear Chrome cache (so updates appear immediately) ────────────────
@@ -26,15 +36,9 @@ if exist "%CHROME_CACHE%"    rd /s /q "%CHROME_CACHE%"    >nul 2>&1
 if exist "%CHROME_CODE%"     rd /s /q "%CHROME_CODE%"     >nul 2>&1
 
 :: ── Start the local server with restart-after-update loop ─────────────
-:: Use curl (built into Windows 10+) — far faster than spawning powershell.exe
-curl -s -f -m 3 http://127.0.0.1:3030/api/health >nul 2>&1
-if errorlevel 1 (
-    echo [%date% %time%] Server not running — launching server-restart-loop.bat >> "%~dp0debug.log"
-    start "Prayer Table Server" /min cmd /c ""%~dp0server-restart-loop.bat""
-    echo [%date% %time%] start command issued >> "%~dp0debug.log"
-) else (
-    echo [%date% %time%] Server already running — skipping launch >> "%~dp0debug.log"
-)
+echo [%date% %time%] Launching server-restart-loop.bat >> "%~dp0debug.log"
+start "Prayer Table Server" /min cmd /c ""%~dp0server-restart-loop.bat""
+echo [%date% %time%] start command issued >> "%~dp0debug.log"
 
 :: ── Wait for server ready ─────────────────────────────────────────────
 echo [%date% %time%] Waiting for server to become ready... >> "%~dp0debug.log"
@@ -65,13 +69,37 @@ if exist %CHROME% (
     start http://127.0.0.1:3030
 )
 
-:: ── Watch loop: restart browser if it closes ─────────────────────────
+:: ── Watch loop: restart browser if closed, check server health ────────
+set HEALTH_FAIL=0
 :WATCH_LOOP
 timeout /t 15 /nobreak >nul
+
+:: Check if browser is still running — if closed, wait for server then relaunch
 powershell -Command "if (Get-Process -Name 'chrome','msedge' -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >nul 2>&1
 if errorlevel 1 goto WAIT_FOR_SERVER_RESTART
+
+:: Check server health endpoint
+curl -s -f -m 5 http://127.0.0.1:3030/api/health >nul 2>&1
+if errorlevel 1 (
+    set /a HEALTH_FAIL+=1
+    echo [%date% %time%] Server health check failed (%HEALTH_FAIL% consecutive) >> "%~dp0debug.log"
+) else (
+    set HEALTH_FAIL=0
+)
+
+:: 3 consecutive failures = server is down; kill it so restart-loop relaunches
+if %HEALTH_FAIL% GEQ 3 (
+    echo [%date% %time%] Server unresponsive after 3 checks — killing node.exe >> "%~dp0debug.log"
+    taskkill /f /im node.exe >nul 2>&1
+    set HEALTH_FAIL=0
+    :: Wait for server-restart-loop to relaunch it, then wait for health
+    timeout /t 10 /nobreak >nul
+    goto WAIT_LOOP
+)
+
 goto WATCH_LOOP
 
+:: ── Browser closed: wait for server health before relaunching ─────────
 :WAIT_FOR_SERVER_RESTART
 echo [%date% %time%] Browser closed — waiting for server to come back before relaunch... >> "%~dp0debug.log"
 :WAIT_SERVER_LOOP

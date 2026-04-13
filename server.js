@@ -8,6 +8,12 @@ const { spawnSync } = require("child_process");
 
 const seedData = require("./seed-data.json");
 
+const SERVER_VERSION = fs.readFileSync(path.join(__dirname, "VERSION"), "utf8").trim();
+const SERVER_START_TIME = Date.now();
+const LOG_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+
+let lastUpdateCheckAt = null;
+
 const PORT = Number(process.env.PORT || 3030);
 const HOST = process.env.HOST || "127.0.0.1";
 const ROOT_DIR = __dirname;
@@ -42,6 +48,27 @@ const MIME_TYPES = {
   ".txt": "text/plain; charset=utf-8",
   ".webp": "image/webp",
 };
+
+// ---- Network resilience: never let unhandled errors crash the server ----
+process.on("uncaughtException", (err) => {
+  console.error("[UNCAUGHT]", err.message || err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.warn("[UNHANDLED-REJECTION]", reason instanceof Error ? reason.message : reason);
+});
+
+// ---- Log rotation ----
+function rotateLogIfNeeded(logPath) {
+  try {
+    const stat = fs.statSync(logPath);
+    if (stat.size >= LOG_MAX_BYTES) {
+      const oldPath = logPath + ".old";
+      try { fs.unlinkSync(oldPath); } catch {}
+      fs.renameSync(logPath, oldPath);
+      console.log(`[log-rotate] rotated ${path.basename(logPath)} (${stat.size} bytes)`);
+    }
+  } catch {}
+}
 
 let syncPromise = null;
 let syncState = {
@@ -472,6 +499,8 @@ async function syncFromRemote(reason = "manual") {
 
 function scheduleSync() {
   const interval = setInterval(() => {
+    rotateLogIfNeeded(path.join(ROOT_DIR, "server.log"));
+    rotateLogIfNeeded(path.join(ROOT_DIR, "debug.log"));
     syncFromRemote("interval").catch(() => {});
   }, SYNC_INTERVAL_MS);
 
@@ -533,6 +562,7 @@ async function copyDirContents(srcDir, destDir, topLevelSkip) {
 async function checkAndApplyUpdate() {
   console.log("[auto-update] checking for updates...");
   const checkedAt = new Date().toISOString();
+  lastUpdateCheckAt = checkedAt;
 
   try {
     const releaseApiUrl = `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${RELEASE_TAG}`;
@@ -674,6 +704,23 @@ async function requestHandler(req, res) {
       remoteBaseUrl: REMOTE_BASE_URL,
       syncing: syncState.syncing,
       lastSuccessAt: syncState.lastSuccessAt,
+      source: syncState.source,
+    });
+  }
+
+  if (pathname === "/api/status") {
+    const uptimeSec = Math.floor((Date.now() - SERVER_START_TIME) / 1000);
+    const healthy = !syncState.lastError;
+    return sendJson(res, 200, {
+      healthy,
+      version: SERVER_VERSION,
+      uptime: `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m ${uptimeSec % 60}s`,
+      uptimeSeconds: uptimeSec,
+      lastSyncTime: syncState.lastSuccessAt,
+      lastSyncError: syncState.lastError,
+      lastUpdateCheck: lastUpdateCheckAt,
+      locationCount: syncState.locationCount,
+      cachedAssetCount: syncState.cachedAssetCount,
       source: syncState.source,
     });
   }

@@ -2426,5 +2426,54 @@ setTimeout(function initTouchRipple() {
 })();
 
 </script>
+
+<!-- Server heartbeat: reconnect overlay during updates/outages -->
+<div id="reconnect-overlay" style="display:none; position:fixed; inset:0; z-index:99999;
+  background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
+  <div style="color:#f0c040; font-size:28px; font-family:'Segoe UI',system-ui,sans-serif; text-align:center;">
+    <div style="margin-bottom:16px; font-size:40px;">&#x21bb;</div>
+    Reconnecting to server&hellip;
+    <div style="margin-top:12px; font-size:16px; color:#8090a0;">The display will resume automatically.</div>
+  </div>
+</div>
+<script>
+(function serverHeartbeat() {
+  var overlay = document.getElementById("reconnect-overlay");
+  var failures = 0;
+  var wasDown = false;
+
+  function check() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/health", true);
+    xhr.timeout = 5000;
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        failures = 0;
+        if (wasDown) {
+          wasDown = false;
+          overlay.style.display = "none";
+          window.location.reload();
+        }
+      } else {
+        onFail();
+      }
+    };
+    xhr.onerror = onFail;
+    xhr.ontimeout = onFail;
+    xhr.send();
+  }
+
+  function onFail() {
+    failures++;
+    if (failures >= 2 && !wasDown) {
+      wasDown = true;
+      overlay.style.display = "flex";
+    }
+  }
+
+  setInterval(check, 30000);
+  check();
+})();
+</script>
 </body>
 </html>
