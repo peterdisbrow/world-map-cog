@@ -2,8 +2,11 @@
 title Prayer Table
 cd /d "%~dp0"
 
+echo [%date% %time%] ===== Start Prayer Table.bat launched ===== >> "%~dp0debug.log"
+
 :: ── Sanity check: node.exe and node_modules must be present in this folder ──
 if not exist "node.exe" (
+    echo [%date% %time%] ERROR: node.exe not found >> "%~dp0debug.log"
     echo.
     echo  ERROR: node.exe not found.
     echo  Re-download world-map-kiosk-portable.zip from the GitHub release page
@@ -12,6 +15,7 @@ if not exist "node.exe" (
     pause
     exit /b 1
 )
+echo [%date% %time%] node.exe found OK >> "%~dp0debug.log"
 
 :SETUP_DONE
 
@@ -22,16 +26,24 @@ if exist "%CHROME_CACHE%"    rd /s /q "%CHROME_CACHE%"    >nul 2>&1
 if exist "%CHROME_CODE%"     rd /s /q "%CHROME_CODE%"     >nul 2>&1
 
 :: ── Start the local server with restart-after-update loop ─────────────
-powershell -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:3030/api/health' -UseBasicParsing -TimeoutSec 2 >$null; exit 0 } catch { exit 1 }" >nul 2>&1
+:: Use curl (built into Windows 10+) — far faster than spawning powershell.exe
+curl -s -f -m 3 http://127.0.0.1:3030/api/health >nul 2>&1
 if errorlevel 1 (
+    echo [%date% %time%] Server not running — launching server-restart-loop.bat >> "%~dp0debug.log"
     start "Prayer Table Server" /min cmd /c ""%~dp0server-restart-loop.bat""
+    echo [%date% %time%] start command issued >> "%~dp0debug.log"
+) else (
+    echo [%date% %time%] Server already running — skipping launch >> "%~dp0debug.log"
 )
 
 :: ── Wait for server ready ─────────────────────────────────────────────
+echo [%date% %time%] Waiting for server to become ready... >> "%~dp0debug.log"
 :WAIT_LOOP
-timeout /t 1 /nobreak >nul
-powershell -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:3030/api/health' -UseBasicParsing -TimeoutSec 2 >$null; exit 0 } catch { exit 1 }" >nul 2>&1
+timeout /t 2 /nobreak >nul
+curl -s -f -m 3 http://127.0.0.1:3030/api/health >nul 2>&1
 if errorlevel 1 goto WAIT_LOOP
+
+echo [%date% %time%] Server is ready — launching browser >> "%~dp0debug.log"
 
 :: ── Browser paths ─────────────────────────────────────────────────────
 set CHROME="%ProgramFiles%\Google\Chrome\Application\chrome.exe"
