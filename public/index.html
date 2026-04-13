@@ -2450,6 +2450,7 @@ setTimeout(function initTouchRipple() {
   var overlay = document.getElementById("reconnect-overlay");
   var failures = 0;
   var wasDown = false;
+  var everConnected = false;
 
   function check() {
     var xhr = new XMLHttpRequest();
@@ -2457,6 +2458,7 @@ setTimeout(function initTouchRipple() {
     xhr.timeout = 5000;
     xhr.onload = function() {
       if (xhr.status >= 200 && xhr.status < 300) {
+        everConnected = true;
         failures = 0;
         if (wasDown) {
           wasDown = false;
@@ -2473,6 +2475,9 @@ setTimeout(function initTouchRipple() {
   }
 
   function onFail() {
+    // If we've never had a successful connection, this isn't a local kiosk
+    // server — don't show the reconnect overlay (e.g. when hosted on Vercel).
+    if (!everConnected) return;
     failures++;
     if (failures >= 2 && !wasDown) {
       wasDown = true;
