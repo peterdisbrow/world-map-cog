@@ -649,8 +649,18 @@ async function checkAndApplyUpdate() {
       lastError: null,
     });
 
-    console.log("[auto-update] update installed — restarting server...");
-    process.exit(UPDATE_EXIT_CODE);
+    console.log("[auto-update] update installed — stopping server and exiting with code 100...");
+    // Close the HTTP server first so Windows releases the port and any
+    // keep-alive connections don't prevent a clean exit.
+    server.close(() => {
+      console.log("[auto-update] server closed — calling process.exit(100)");
+      process.exit(UPDATE_EXIT_CODE);
+    });
+    // Force-exit after 5s if server.close() hangs on open connections
+    setTimeout(() => {
+      console.log("[auto-update] force-exit after timeout");
+      process.exit(UPDATE_EXIT_CODE);
+    }, 5000).unref();
   } catch (error) {
     console.warn(`[auto-update] ${error.message}`);
     await writeUpdateState({ lastCheckedAt: checkedAt, lastError: error.message }).catch(() => {});
