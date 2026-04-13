@@ -549,12 +549,17 @@ async function copyDirContents(srcDir, destDir, topLevelSkip) {
     if (topLevelSkip && topLevelSkip.has(entry.name)) continue;
     const src = path.join(srcDir, entry.name);
     const dest = path.join(destDir, entry.name);
-    if (entry.isDirectory()) {
-      await fsp.mkdir(dest, { recursive: true });
-      await copyDirContents(src, dest, null);
-    } else if (entry.isFile()) {
-      await fsp.mkdir(path.dirname(dest), { recursive: true });
-      await fsp.copyFile(src, dest);
+    try {
+      if (entry.isDirectory()) {
+        await fsp.mkdir(dest, { recursive: true });
+        await copyDirContents(src, dest, null);
+      } else if (entry.isFile()) {
+        await fsp.mkdir(path.dirname(dest), { recursive: true });
+        await fsp.copyFile(src, dest);
+      }
+    } catch (err) {
+      // Log but continue — locked .exe or .bat files will be replaced on restart
+      console.warn(`[auto-update] copy failed: ${entry.name} -> ${err.message}`);
     }
   }
 }
@@ -613,13 +618,24 @@ async function checkAndApplyUpdate() {
     await extractZipWithPowershell(zipTempPath, stagingDir);
     console.log("[auto-update] extracted zip");
 
-    // Strip top-level wrapper folder if the zip contains exactly one directory
-    const stagingEntries = await fsp.readdir(stagingDir, { withFileTypes: true });
-    const sourceDir =
-      stagingEntries.length === 1 && stagingEntries[0].isDirectory()
-        ? path.join(stagingDir, stagingEntries[0].name)
-        : stagingDir;
+    // Strip wrapper directories until we find the actual app files (server.js).
+    // The zip may contain world-map-kiosk-portable/ or even nested wrappers
+    // depending on how it was built.
+    let sourceDir = stagingDir;
+    for (let depth = 0; depth < 5; depth++) {
+      const entries = await fsp.readdir(sourceDir, { withFileTypes: true });
+      const names = entries.map((e) => e.name);
+      console.log(`[auto-update] strip check depth=${depth} dir=${sourceDir} entries=[${names.join(", ")}]`);
+      if (names.includes("server.js")) break; // found the app root
+      const dirs = entries.filter((e) => e.isDirectory());
+      if (dirs.length === 1) {
+        sourceDir = path.join(sourceDir, dirs[0].name);
+      } else {
+        break; // ambiguous — use as-is
+      }
+    }
 
+    console.log(`[auto-update] installing from ${sourceDir} -> ${ROOT_DIR}`);
     await copyDirContents(sourceDir, ROOT_DIR, PRESERVE_ON_UPDATE);
     console.log("[auto-update] files installed");
 

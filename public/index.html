@@ -611,7 +611,12 @@
 </style>
 </head>
 <body>
-<div id="version-badge">v1.0.1</div>
+<div id="version-badge">v1.0.5</div>
+<script>
+fetch("/api/status").then(function(r){return r.json()}).then(function(d){
+  if(d.version) document.getElementById("version-badge").textContent="v"+d.version;
+}).catch(function(){});
+</script>
 <div id="splash">
   <img class="splash-logo" src="/assets/branding/cog-logo.png" alt="Church of God">
   <div class="splash-title">Global Prayer Table</div>
