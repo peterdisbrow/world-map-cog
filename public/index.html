@@ -611,7 +611,7 @@
 </style>
 </head>
 <body>
-<div id="version-badge">v1.0.5</div>
+<div id="version-badge">v1.0.9</div>
 <script>
 fetch("/api/status").then(function(r){return r.json()}).then(function(d){
   if(d.version) document.getElementById("version-badge").textContent="v"+d.version;
