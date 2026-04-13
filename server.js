@@ -15,7 +15,7 @@ const LOG_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 let lastUpdateCheckAt = null;
 
 const PORT = Number(process.env.PORT || 3030);
-const HOST = process.env.HOST || "127.0.0.1";
+const HOST = process.env.HOST || "0.0.0.0";
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const LOCAL_DATA_DIR = process.env.LOCAL_DATA_DIR || path.join(ROOT_DIR, "local-data");
