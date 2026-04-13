@@ -69,5 +69,14 @@ if exist %CHROME% (
 :WATCH_LOOP
 timeout /t 15 /nobreak >nul
 powershell -Command "if (Get-Process -Name 'chrome','msedge' -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >nul 2>&1
-if errorlevel 1 goto LAUNCH_BROWSER
+if errorlevel 1 goto WAIT_FOR_SERVER_RESTART
 goto WATCH_LOOP
+
+:WAIT_FOR_SERVER_RESTART
+echo [%date% %time%] Browser closed — waiting for server to come back before relaunch... >> "%~dp0debug.log"
+:WAIT_SERVER_LOOP
+timeout /t 2 /nobreak >nul
+curl -s -f -m 3 http://127.0.0.1:3030/api/health >nul 2>&1
+if errorlevel 1 goto WAIT_SERVER_LOOP
+echo [%date% %time%] Server is ready — relaunching browser >> "%~dp0debug.log"
+goto LAUNCH_BROWSER
