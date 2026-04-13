@@ -650,17 +650,20 @@ async function checkAndApplyUpdate() {
     });
 
     console.log("[auto-update] update installed — stopping server and exiting with code 100...");
-    // Close the HTTP server first so Windows releases the port and any
-    // keep-alive connections don't prevent a clean exit.
+    // Stop accepting new connections, destroy all keep-alive sockets so
+    // server.close() callback fires immediately rather than hanging.
     server.close(() => {
       console.log("[auto-update] server closed — calling process.exit(100)");
       process.exit(UPDATE_EXIT_CODE);
     });
-    // Force-exit after 5s if server.close() hangs on open connections
+    for (const socket of activeSockets) {
+      socket.destroy();
+    }
+    // Hard fallback: force-exit after 2s in case anything still lingers
     setTimeout(() => {
       console.log("[auto-update] force-exit after timeout");
       process.exit(UPDATE_EXIT_CODE);
-    }, 5000).unref();
+    }, 2000);
   } catch (error) {
     console.warn(`[auto-update] ${error.message}`);
     await writeUpdateState({ lastCheckedAt: checkedAt, lastError: error.message }).catch(() => {});
@@ -813,6 +816,13 @@ const server = http.createServer((req, res) => {
     console.error("[local-server]", error);
     sendJson(res, 500, { error: "Internal server error" });
   });
+});
+
+// Track active sockets so we can destroy them for a clean forced exit
+const activeSockets = new Set();
+server.on("connection", (socket) => {
+  activeSockets.add(socket);
+  socket.on("close", () => activeSockets.delete(socket));
 });
 
 ensureLocalStore()

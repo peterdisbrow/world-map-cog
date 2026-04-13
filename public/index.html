@@ -2249,7 +2249,11 @@ setTimeout(function initTouchRipple() {
   function onInteraction(e) {
     // Don't reset idle timer if interacting with journey controls
     if (e.target.closest('#exit-journey-btn') || e.target.closest('#prayer-journey-btn') || e.target.closest('#pause-journey-btn')) return;
-    if (!journeyActive) resetIdleTimer();
+    if (journeyActive) {
+      stopJourney();
+    } else {
+      resetIdleTimer();
+    }
   }
 
   ['click', 'touchstart', 'touchmove', 'pointerdown'].forEach(evt => {
