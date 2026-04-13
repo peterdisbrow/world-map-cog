@@ -17,6 +17,18 @@ if not exist "node.exe" (
 )
 echo [%date% %time%] node.exe found OK >> "%~dp0debug.log"
 
+REM ── Check if server is already running (e.g. via WorldMapKioskServer task) ──
+echo [%date% %time%] Checking for existing server... >> "%~dp0debug.log"
+curl -s -f -m 3 http://127.0.0.1:3030/api/health >nul 2>&1
+if not errorlevel 1 (
+    echo [%date% %time%] Server already running -- skipping node restart >> "%~dp0debug.log"
+    REM Still clean up stale browser processes from a previous session
+    taskkill /f /im chrome.exe >nul 2>&1
+    taskkill /f /im msedge.exe >nul 2>&1
+    timeout /t 1 /nobreak >nul
+    goto SERVER_READY
+)
+
 REM ── Power-outage recovery: kill stale processes from a previous instance ──
 echo [%date% %time%] Checking for stale processes... >> "%~dp0debug.log"
 taskkill /f /im node.exe >nul 2>&1
@@ -47,6 +59,7 @@ timeout /t 2 /nobreak >nul
 curl -s -f -m 3 http://127.0.0.1:3030/api/health >nul 2>&1
 if errorlevel 1 goto WAIT_LOOP
 
+:SERVER_READY
 echo [%date% %time%] Server is ready — launching browser >> "%~dp0debug.log"
 
 REM ── Browser paths ─────────────────────────────────────────────────────
