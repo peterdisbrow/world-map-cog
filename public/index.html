@@ -89,7 +89,7 @@
   .marker-group { cursor: pointer; }
   .marker-halo { opacity: 0.4; }
   .marker-dot { transition: r 0.2s; }
-  .marker-group:hover .marker-dot, .marker-group.active .marker-dot { r: 24; }
+  .marker-group:hover .marker-dot, .marker-group.active .marker-dot { r: 18; }
   .marker-group:hover .marker-halo { opacity: 0.7; }
   .marker-label { font-size: 22px; fill: #f0d080; text-anchor: middle; pointer-events: none; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 12px rgba(0,0,0,0.9), 0 0 20px rgba(240,192,64,0.3); font-weight: 600; }
   .marker-group:hover .marker-label { opacity: 1; }
@@ -122,6 +122,9 @@
     transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1), transform 0.35s cubic-bezier(0.16,1,0.3,1);
   }
   #info-panel.open { opacity: 1; pointer-events: auto; transform: scale(1); }
+  /* rotate is an individual CSS property — kept separate from the transition
+     so the flip is instant with no spin animation */
+  #info-panel.panel-flipped { rotate: 180deg; }
 
   #panel-close {
     position: absolute; top: 18px; right: 22px;
@@ -197,9 +200,15 @@
     border-radius: 18px; padding: 16px 10px;
     backdrop-filter: blur(20px); box-shadow: 0 12px 50px rgba(0,0,0,0.7);
     display: none; min-width: 280px;
-    transform: translate(-50%, -100%); margin-top: -20px;
+    transform: translate(-50%, -100%); margin-top: -8px;
   }
   #cluster-popup.open { display: block; }
+  /* Top-half: flip 180° and appear below the marker instead of above */
+  #cluster-popup.popup-flipped {
+    rotate: 180deg;
+    transform: translate(50%, 0%);
+    margin-top: 8px;
+  }
   #cluster-popup::after {
     content: ''; position: absolute; bottom: -8px; left: 50%;
     transform: translateX(-50%); width: 0; height: 0;
@@ -1485,26 +1494,29 @@ d3.json(WORLD_URL).then(world => {
 
     // Halo glow behind dot
     const haloFill = hasSchool ? 'url(#halo-school)' : 'url(#halo-accent)';
-    g.append('circle').attr('class', 'marker-halo marker-breathe').attr('r', 32).attr('fill', haloFill);
+    g.append('circle').attr('class', 'marker-halo marker-breathe').attr('r', 24).attr('fill', haloFill);
 
     // Glow filter per type
     const glowId = 'glow-gold';
 
     // Center dot
-    g.append('circle').attr('class', 'marker-dot').attr('r', cluster.length > 1 ? 14 : 11).attr('fill', color)
+    g.append('circle').attr('class', 'marker-dot').attr('r', cluster.length > 1 ? 10 : 8).attr('fill', color)
       .attr('filter', `url(#${glowId})`);
 
-    // Cluster count badge
+    // Cluster count badge — centered on the dot
     if (cluster.length > 1) {
-      g.append('circle').attr('cx', 16).attr('cy', -16).attr('r', 12).attr('fill', color);
-      g.append('text').attr('x', 16).attr('y', -11).attr('text-anchor', 'middle')
-        .attr('font-size', '14px').attr('font-weight', '700').attr('fill', '#0a0e1a')
+      g.append('text').attr('x', 0).attr('y', 4).attr('text-anchor', 'middle')
+        .attr('font-size', '12px').attr('font-weight', '700').attr('fill', '#0a0e1a')
         .text(cluster.length);
     }
 
     // Label (first item name or country)
-    g.append('text').attr('class', 'marker-label').attr('y', -30)
-      .text(cluster.length === 1 ? cluster[0].loc.name : cluster[0].loc.country);
+    // Rotate 180° for markers in the top half so the label reads correctly
+    // for the person standing at that side of the table
+    const labelTopHalf = avgY < H * 0.45;
+    const labelEl = g.append('text').attr('class', 'marker-label').attr('y', -30);
+    if (labelTopHalf) labelEl.attr('transform', 'rotate(180)');
+    labelEl.text(cluster.length === 1 ? cluster[0].loc.name : cluster[0].loc.country);
 
     g.style('opacity', 1);
   });
@@ -1529,8 +1541,9 @@ d3.json(WORLD_URL).then(world => {
     .attr('stroke-width', 2)
     .attr('filter', 'url(#glow-star)');
 
-  hqG.append('text').attr('class', 'marker-label').attr('y', -40)
-    .text('Cleveland, TN — World Headquarters');
+  const hqLabelEl = hqG.append('text').attr('class', 'marker-label').attr('y', -40);
+  if (hqPos[1] < H * 0.45) hqLabelEl.attr('transform', 'rotate(180)');
+  hqLabelEl.text('Cleveland, TN — World Headquarters');
 
   // Use HQ data from API if available, otherwise fallback
   const hqFromApi = locations.find(l => l.id === 'hq');
@@ -1703,12 +1716,20 @@ function openClusterPopup(cluster, svgX, svgY) {
   clusterPopup.innerHTML = html;
   clusterPopup.classList.add('open');
 
+  // Flip 180° for markers in the top half of the table so viewers on that side can read it
+  if (svgY < H * 0.45) {
+    clusterPopup.classList.add('popup-flipped');
+  } else {
+    clusterPopup.classList.remove('popup-flipped');
+  }
+
   // Bind clicks — pass screen position so panel opens near dot
   clusterPopup.querySelectorAll('.cluster-item').forEach(btn => {
     function handle(e) {
       if (e) e.preventDefault();
       const loc = locations.find(l => l.id === btn.dataset.id);
       clusterPopup.classList.remove('open');
+      clusterPopup.classList.remove('popup-flipped');
       if (loc) openPanel(loc, screenPos);
     }
     btn.addEventListener('click', handle);
@@ -1720,6 +1741,7 @@ function openClusterPopup(cluster, svgX, svgY) {
 document.addEventListener('click', (e) => {
   if (!clusterPopup.contains(e.target) && !e.target.closest('.marker-group')) {
     clusterPopup.classList.remove('open');
+    clusterPopup.classList.remove('popup-flipped');
   }
 });
 
@@ -1789,15 +1811,24 @@ function openPanel(loc, screenPos, forceRight) {
     const vh = 1350;
 
     let left, top;
+    const inTopHalf = !forceRight && screenPos.y < vh * 0.45;
 
     if (forceRight) {
       // During prayer journey: always place to the RIGHT of the centered dot
       left = screenPos.x + 180;
       top = screenPos.y - panelH / 2;
+      panel.classList.remove('panel-flipped');
+    } else if (inTopHalf) {
+      // Top-side viewer: open ABOVE the marker, rotated 180° so it reads
+      // correctly for the person standing at the top of the table
+      left = screenPos.x - panelW / 2;
+      top = screenPos.y - panelH - 40;
+      panel.classList.add('panel-flipped');
     } else {
       // Normal mode: prefer right, fall back to left
       left = screenPos.x + 30;
       if (left + panelW > vw - 20) left = screenPos.x - panelW - 30;
+      panel.classList.remove('panel-flipped');
     }
 
     if (left + panelW > vw - 20) left = vw - panelW - 20;
@@ -1817,8 +1848,10 @@ function openPanel(loc, screenPos, forceRight) {
 
 function closePanel() {
   panel.classList.remove('open');
+  panel.classList.remove('panel-flipped');
   overlay.classList.remove('active');
   clusterPopup.classList.remove('open');
+  clusterPopup.classList.remove('popup-flipped');
 }
 
 document.getElementById('panel-close').addEventListener('click', closePanel);
