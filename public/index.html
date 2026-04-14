@@ -47,28 +47,22 @@
 
   #map-container { position: relative; width: 100%; height: 100%; z-index: 1; transform: translateZ(0); }
   #map-container svg { display: block; width: 100%; height: 100%; }
-  #map-container::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    background: radial-gradient(ellipse 65% 60% at 50% 48%, rgba(0,30,80,0.25) 0%, rgba(0,15,40,0.1) 40%, transparent 65%);
-  }
   #map-container::after {
     content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
-    background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 45%, rgba(0,2,8,0.65) 100%);
-    animation: atmo-breathe 20s ease-in-out infinite;
+    background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, rgba(0,2,8,0.35) 100%);
   }
-  @keyframes atmo-breathe { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
 
   .country { stroke: rgba(0,200,255,0.7); stroke-width: 0.6; }
   .coastline-glow { fill: none; stroke: rgba(0,220,255,0.5); stroke-width: 2; pointer-events: none; }
   .coastline-glow-bright { fill: none; stroke: rgba(0,200,255,0.15); stroke-width: 4; pointer-events: none; }
   @keyframes coastline-pulse { 0%, 100% { stroke-opacity: 0.6; } 50% { stroke-opacity: 0.85; } }
-  .country-africa { fill: rgba(0,50,100,0.35); }
-  .country-europe { fill: rgba(0,45,95,0.35); }
-  .country-asia { fill: rgba(0,40,90,0.35); }
-  .country-namerica { fill: rgba(0,55,105,0.37); }
-  .country-samerica { fill: rgba(0,45,90,0.33); }
-  .country-oceania { fill: rgba(0,42,92,0.33); }
-  .country-other { fill: rgba(0,50,100,0.35); }
+  .country-africa { fill: rgba(0,30,75,0.75); }
+  .country-europe { fill: rgba(0,28,70,0.75); }
+  .country-asia { fill: rgba(0,25,65,0.75); }
+  .country-namerica { fill: rgba(0,32,78,0.75); }
+  .country-samerica { fill: rgba(0,28,68,0.75); }
+  .country-oceania { fill: rgba(0,27,70,0.75); }
+  .country-other { fill: rgba(0,30,75,0.75); }
 
   .graticule { fill: none; stroke: rgba(0,180,255,0.18); stroke-width: 0.8; stroke-dasharray: 6 10; }
   .arc-line { fill: none; stroke: rgba(0,229,255,0.10); stroke-width: 0.8; stroke-dasharray: 6 4; pointer-events: none; }
@@ -1075,8 +1069,8 @@ cgMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 // ── Enhancement 4: Globe atmosphere gradient (holographic) ──
 const globeAtmo = defs.append('radialGradient').attr('id', 'globe-atmosphere')
   .attr('cx','50%').attr('cy','48%').attr('r','50%');
-globeAtmo.append('stop').attr('offset','0%').attr('stop-color','#003060').attr('stop-opacity',0.3);
-globeAtmo.append('stop').attr('offset','50%').attr('stop-color','#001830').attr('stop-opacity',0.15);
+globeAtmo.append('stop').attr('offset','0%').attr('stop-color','#003060').attr('stop-opacity',0);
+globeAtmo.append('stop').attr('offset','50%').attr('stop-color','#001830').attr('stop-opacity',0);
 globeAtmo.append('stop').attr('offset','100%').attr('stop-color','#000000').attr('stop-opacity',0);
 
 
@@ -1092,8 +1086,8 @@ fmg.append('feMergeNode').attr('in','SourceGraphic');
 // Ocean radial gradient
 const oceanGrad = defs.append('radialGradient').attr('id', 'ocean-grad')
   .attr('cx', '50%').attr('cy', '50%').attr('r', '60%');
-oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#061020').attr('stop-opacity', 0.85);
-oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#020408').attr('stop-opacity', 0.75);
+oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#1a5a9a').attr('stop-opacity', 1);
+oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#0c3060').attr('stop-opacity', 1);
 
 // Halo gradients
 const missionHalo = defs.append('radialGradient').attr('id', 'halo-mission');
