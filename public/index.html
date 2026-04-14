@@ -605,7 +605,7 @@
 </style>
 </head>
 <body>
-<div id="version-badge">v1.0.9</div>
+<div id="version-badge">v1.0.10</div>
 <script>
 fetch("/api/status").then(function(r){return r.json()}).then(function(d){
   if(d.version) document.getElementById("version-badge").textContent="v"+d.version;
@@ -1086,8 +1086,8 @@ fmg.append('feMergeNode').attr('in','SourceGraphic');
 // Ocean radial gradient
 const oceanGrad = defs.append('radialGradient').attr('id', 'ocean-grad')
   .attr('cx', '50%').attr('cy', '50%').attr('r', '60%');
-oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#1a5a9a').attr('stop-opacity', 1);
-oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#0c3060').attr('stop-opacity', 1);
+oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#11426e').attr('stop-opacity', 1);
+oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#081e42').attr('stop-opacity', 1);
 
 // Halo gradients
 const missionHalo = defs.append('radialGradient').attr('id', 'halo-mission');
